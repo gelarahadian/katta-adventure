@@ -3,23 +3,46 @@
 @tailwind utilities;
 
 :root {
-  --background: 0 0% 100%;
-  --foreground: 224 20% 12%;
-  --muted: 210 20% 96%;
-  --muted-foreground: 220 10% 42%;
-  --border: 214 18% 88%;
-  --primary: 156 72% 25%;
+  --background: 84 24% 96%;
+  --foreground: 135 17% 12%;
+  --muted: 90 22% 91%;
+  --muted-foreground: 132 10% 34%;
+  --border: 95 15% 80%;
+  --primary: 150 41% 28%;
   --primary-foreground: 0 0% 100%;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 * {
   border-color: hsl(var(--border));
 }
 
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 body {
   background: hsl(var(--background));
   color: hsl(var(--foreground));
   font-family:
-    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-    sans-serif;
+    "Instrument Sans", "Avenir Next", "Segoe UI", sans-serif;
+  margin: 0;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+img {
+  display: block;
+}
+
+.font-serif {
+  font-family: "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
 }
