@@ -114,3 +114,29 @@ export function getProductsByCategory(category?: string) {
 
   return products.filter((product) => product.category === category);
 }
+
+export function getProductById(id: string) {
+  return products.find((product) => product.id === id);
+}
+
+export function getRelatedProducts(productId: string, limit = 3) {
+  const currentProduct = getProductById(productId);
+
+  if (!currentProduct) {
+    return [];
+  }
+
+  const sameCategory = products.filter(
+    (product) => product.id !== productId && product.category === currentProduct.category
+  );
+
+  if (sameCategory.length >= limit) {
+    return sameCategory.slice(0, limit);
+  }
+
+  const fallback = products.filter(
+    (product) => product.id !== productId && product.category !== currentProduct.category
+  );
+
+  return [...sameCategory, ...fallback].slice(0, limit);
+}
