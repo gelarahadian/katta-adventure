@@ -18,7 +18,8 @@ const config: Config = {
         }
       },
       fontFamily: {
-        sans: ["var(--font-geist-sans)", "Arial", "sans-serif"]
+        sans: ["Instrument Sans", "Avenir Next", "Segoe UI", "sans-serif"],
+        serif: ["Iowan Old Style", "Palatino Linotype", "Book Antiqua", "Georgia", "serif"]
       }
     }
   },
