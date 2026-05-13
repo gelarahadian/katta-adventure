@@ -79,11 +79,41 @@ model User {
   updatedAt        DateTime      @updatedAt
   deletedAt        DateTime?
   addresses        Address[]
+  authSessions     AuthSession[]
   carts            Cart[]
   orders           Order[]
   payments         Payment[]
+  passwordResets   PasswordResetToken[]
   createdProducts  Product[]     @relation("ProductCreatedBy")
   updatedProducts  Product[]     @relation("ProductUpdatedBy")
+}
+
+model AuthSession {
+  id                String   @id @default(cuid())
+  refreshTokenHash  String
+  userAgent         String?
+  ipAddress         String?
+  expiresAt         DateTime
+  revokedAt         DateTime?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model PasswordResetToken {
+  id          String   @id @default(cuid())
+  tokenHash   String   @unique
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime @default(now())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
 }
 
 model Category {

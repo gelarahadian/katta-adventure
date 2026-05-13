@@ -1,11 +1,19 @@
 import { Router } from "express";
 
+import {
+  forgotPassword,
+  getAuthStatus,
+  login,
+  logout,
+  refreshSession,
+  register
+} from "../../modules/auth/auth.controller.js";
+
 export const authRouter = Router();
 
-authRouter.get("/status", (_request, response) => {
-  response.status(200).json({
-    module: "auth",
-    status: "ready",
-    next: ["register", "login", "forgot-password", "refresh-token"]
-  });
-});
+authRouter.get("/status", getAuthStatus);
+authRouter.post("/register", register);
+authRouter.post("/login", login);
+authRouter.post("/forgot-password", forgotPassword);
+authRouter.post("/refresh", refreshSession);
+authRouter.post("/logout", logout);

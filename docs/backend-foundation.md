@@ -41,6 +41,7 @@ Lihat `apps/backend/.env.example` untuk variabel minimum:
 Schema Prisma sudah mencakup:
 
 - `User`
+- `AuthSession`
 - `Category`
 - `Product`
 - `Address`
@@ -49,6 +50,7 @@ Schema Prisma sudah mencakup:
 - `Order`
 - `OrderItem`
 - `Payment`
+- `PasswordResetToken`
 
 ## Next Recommended Steps
 

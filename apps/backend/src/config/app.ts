@@ -5,6 +5,7 @@ import helmet from "helmet";
 import morgan from "morgan";
 
 import { env } from "./env.js";
+import { validateRequestError } from "../middlewares/validate-request.js";
 import { apiRouter } from "../routes/index.js";
 
 export function createApp() {
@@ -30,6 +31,7 @@ export function createApp() {
   });
 
   app.use("/api", apiRouter);
+  app.use(validateRequestError);
 
   return app;
 }
