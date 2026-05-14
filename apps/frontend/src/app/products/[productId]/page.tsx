@@ -7,6 +7,7 @@ import { notFound } from "next/navigation";
 import { ProductCard } from "@/components/storefront/product-card";
 import { SectionHeading } from "@/components/storefront/section-heading";
 import { SiteHeader } from "@/components/storefront/site-header";
+import { AddToCartButton } from "@/components/cart/add-to-cart-button";
 import { formatPrice } from "@/data/products";
 import { getCatalogProductBySlug, getCatalogProducts } from "@/lib/catalog-client";
 import { mapCatalogProductToCard } from "@/lib/catalog-mappers";
@@ -133,9 +134,15 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
               </div>
 
               <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-                <Button className="sm:flex-1" disabled={product.stock <= 0}>
-                  {product.stock > 0 ? "Add to cart" : "Notify me"}
-                </Button>
+                {product.stock > 0 ? (
+                  <div className="sm:flex-1">
+                    <AddToCartButton productId={product.id} />
+                  </div>
+                ) : (
+                  <Button className="sm:flex-1" variant="secondary" disabled>
+                    Notify me
+                  </Button>
+                )}
                 <Button variant="outline" className="sm:flex-1">
                   Save for later
                 </Button>

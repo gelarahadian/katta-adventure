@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Star } from "lucide-react";
 
 import { formatPrice } from "@/data/products";
+import { AddToCartButton } from "@/components/cart/add-to-cart-button";
 import { Product } from "@/types/catalog";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -74,13 +75,18 @@ export function ProductCard({ product, compact = false }: ProductCardProps) {
             <Button asChild size={compact ? "sm" : "default"} variant="outline" className="w-full">
               <Link href={`/products/${product.id}`}>Details</Link>
             </Button>
-            <Button
-              size={compact ? "sm" : "default"}
-              variant={product.inStock ? "default" : "secondary"}
-              className={cn("w-full", !product.inStock && "text-muted-foreground")}
-            >
-              {product.inStock ? "Add to cart" : "Notify me"}
-            </Button>
+            {product.inStock && product.cartProductId ? (
+              <AddToCartButton productId={product.cartProductId} size={compact ? "sm" : "default"} />
+            ) : (
+              <Button
+                size={compact ? "sm" : "default"}
+                variant="secondary"
+                className={cn("w-full text-muted-foreground")}
+                disabled
+              >
+                Notify me
+              </Button>
+            )}
           </div>
         </div>
       </div>

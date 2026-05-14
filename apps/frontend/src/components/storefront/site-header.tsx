@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { Menu, Search, ShoppingBag } from "lucide-react";
+import { Menu, Search } from "lucide-react";
 
 import { cn } from "@/lib/utils";
+import { CartIconButton } from "@/components/cart/cart-icon-button";
 import { Button } from "@/components/ui/button";
 
 const navItems = [
@@ -51,9 +52,7 @@ export function SiteHeader({ currentPath }: SiteHeaderProps) {
           <Button size="icon" variant="outline" aria-label="Search">
             <Search className="h-4 w-4" />
           </Button>
-          <Button size="icon" variant="outline" aria-label="Cart">
-            <ShoppingBag className="h-4 w-4" />
-          </Button>
+          <CartIconButton />
           <Button size="icon" variant="outline" className="md:hidden" aria-label="Menu">
             <Menu className="h-4 w-4" />
           </Button>

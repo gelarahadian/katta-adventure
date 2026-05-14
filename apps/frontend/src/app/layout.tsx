@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Toaster } from "sonner";
 
 import { SiteFooter } from "@/components/storefront/site-footer";
 
@@ -22,6 +23,7 @@ export default function RootLayout({
           <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-80 bg-[linear-gradient(180deg,rgba(245,248,240,0.2),transparent)]" />
           <div className="flex-1">{children}</div>
           <SiteFooter />
+          <Toaster richColors position="top-right" />
         </div>
       </body>
     </html>

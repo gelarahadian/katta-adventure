@@ -4,6 +4,7 @@ export type ProductTag = "Best Seller" | "New Arrival" | "Limited Drop" | "Trail
 
 export interface Product {
   id: string;
+  cartProductId?: string;
   name: string;
   category: ProductCategory;
   price: number;

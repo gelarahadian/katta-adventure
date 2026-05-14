@@ -7,6 +7,7 @@ const FALLBACK_IMAGE =
 export function mapCatalogProductToCard(product: CatalogProduct): Product {
   return {
     id: product.slug,
+    cartProductId: product.id,
     name: product.name,
     category: product.category.name,
     price: Number(product.price),
