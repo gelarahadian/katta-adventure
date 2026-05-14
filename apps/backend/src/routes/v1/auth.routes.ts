@@ -6,6 +6,7 @@ import {
   login,
   logout,
   refreshSession,
+  resetPassword,
   register
 } from "../../modules/auth/auth.controller.js";
 
@@ -15,5 +16,6 @@ authRouter.get("/status", getAuthStatus);
 authRouter.post("/register", register);
 authRouter.post("/login", login);
 authRouter.post("/forgot-password", forgotPassword);
+authRouter.post("/reset-password", resetPassword);
 authRouter.post("/refresh", refreshSession);
 authRouter.post("/logout", logout);

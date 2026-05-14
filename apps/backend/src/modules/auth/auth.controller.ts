@@ -1,9 +1,11 @@
 import type { Request, Response } from "express";
 
 import { authService } from "./auth.service.js";
+import { authCookieOptions, refreshCookieName } from "./auth.constants.js";
 import {
   forgotPasswordSchema,
   loginSchema,
+  resetPasswordSchema,
   refreshSessionSchema,
   registerSchema
 } from "./auth.schemas.js";
@@ -19,29 +21,53 @@ function getRefreshToken(request: Request) {
 export async function getAuthStatus(_request: Request, response: Response) {
   response.status(200).json({
     module: "auth",
-    status: "skeleton-ready",
+    status: "implemented-foundation",
     endpoints: [
       "POST /api/v1/auth/register",
       "POST /api/v1/auth/login",
       "POST /api/v1/auth/forgot-password",
+      "POST /api/v1/auth/reset-password",
       "POST /api/v1/auth/refresh",
       "POST /api/v1/auth/logout"
     ]
   });
 }
 
+function writeRefreshCookie(response: Response, refreshToken: string, expiresAt: Date) {
+  response.cookie(refreshCookieName, refreshToken, {
+    ...authCookieOptions,
+    expires: expiresAt
+  });
+}
+
+function clearRefreshCookie(response: Response) {
+  response.clearCookie(refreshCookieName, authCookieOptions);
+}
+
 export async function register(request: Request, response: Response) {
   const input = registerSchema.parse(request.body);
   const result = await authService.register(input);
 
-  response.status(202).json(result);
+  writeRefreshCookie(response, result.tokens.refreshToken, result.tokens.refreshExpiresAt);
+
+  response.status(201).json({
+    message: "Registration successful",
+    user: result.user,
+    accessToken: result.tokens.accessToken
+  });
 }
 
 export async function login(request: Request, response: Response) {
   const input = loginSchema.parse(request.body);
   const result = await authService.login(input);
 
-  response.status(202).json(result);
+  writeRefreshCookie(response, result.tokens.refreshToken, result.tokens.refreshExpiresAt);
+
+  response.status(200).json({
+    message: "Login successful",
+    user: result.user,
+    accessToken: result.tokens.accessToken
+  });
 }
 
 export async function forgotPassword(request: Request, response: Response) {
@@ -51,17 +77,32 @@ export async function forgotPassword(request: Request, response: Response) {
   response.status(202).json(result);
 }
 
+export async function resetPassword(request: Request, response: Response) {
+  const input = resetPasswordSchema.parse(request.body);
+  const result = await authService.resetPassword(input);
+
+  clearRefreshCookie(response);
+  response.status(200).json(result);
+}
+
 export async function refreshSession(request: Request, response: Response) {
   const input = refreshSessionSchema.parse({
     refreshToken: getRefreshToken(request)
   });
   const result = await authService.refreshSession(input);
 
-  response.status(202).json(result);
+  writeRefreshCookie(response, result.tokens.refreshToken, result.tokens.refreshExpiresAt);
+
+  response.status(200).json({
+    message: "Session refreshed",
+    user: result.user,
+    accessToken: result.tokens.accessToken
+  });
 }
 
-export async function logout(_request: Request, response: Response) {
-  const result = await authService.logout();
+export async function logout(request: Request, response: Response) {
+  const result = await authService.logout(getRefreshToken(request));
 
-  response.status(202).json(result);
+  clearRefreshCookie(response);
+  response.status(200).json(result);
 }

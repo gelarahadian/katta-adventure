@@ -1,11 +1,15 @@
 import { Router } from "express";
 
+import {
+  getCatalogStatus,
+  getProductBySlug,
+  listCategories,
+  listProducts
+} from "../../modules/catalog/catalog.controller.js";
+
 export const catalogRouter = Router();
 
-catalogRouter.get("/status", (_request, response) => {
-  response.status(200).json({
-    module: "catalog",
-    status: "ready",
-    next: ["products", "categories", "search", "filters"]
-  });
-});
+catalogRouter.get("/status", getCatalogStatus);
+catalogRouter.get("/categories", listCategories);
+catalogRouter.get("/products", listProducts);
+catalogRouter.get("/products/:slug", getProductBySlug);

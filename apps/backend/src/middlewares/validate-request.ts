@@ -1,6 +1,8 @@
 import type { NextFunction, Request, Response } from "express";
 import { ZodError } from "zod";
 
+import { AppError } from "../lib/app-error.js";
+
 export function validateRequestError(
   error: unknown,
   _request: Request,
@@ -15,5 +17,17 @@ export function validateRequestError(
     return;
   }
 
-  next(error);
+  if (error instanceof AppError) {
+    response.status(error.statusCode).json({
+      message: error.message,
+      details: error.details
+    });
+    return;
+  }
+
+  response.status(500).json({
+    message: "Internal server error"
+  });
+
+  next();
 }

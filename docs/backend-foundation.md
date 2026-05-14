@@ -21,6 +21,9 @@ yang nanti akan dipakai oleh modul auth, katalog, cart, checkout, payment, dan a
 - `GET /health`
 - `GET /api/v1/auth/status`
 - `GET /api/v1/catalog/status`
+- `GET /api/v1/catalog/categories`
+- `GET /api/v1/catalog/products`
+- `GET /api/v1/catalog/products/:slug`
 - `GET /api/v1/orders/status`
 
 ## Environment Variables
