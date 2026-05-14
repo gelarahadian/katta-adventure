@@ -45,6 +45,9 @@ export function SiteHeader({ currentPath }: SiteHeaderProps) {
         </nav>
 
         <div className="flex items-center gap-2">
+          <Button asChild variant="secondary" className="hidden sm:inline-flex">
+            <Link href="/login">Login</Link>
+          </Button>
           <Button size="icon" variant="outline" aria-label="Search">
             <Search className="h-4 w-4" />
           </Button>
