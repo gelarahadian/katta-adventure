@@ -1,5 +1,6 @@
 import { Router } from "express";
 
+import { asyncHandler } from "../../lib/async-handler.js";
 import {
   forgotPassword,
   getAuthStatus,
@@ -12,10 +13,10 @@ import {
 
 export const authRouter = Router();
 
-authRouter.get("/status", getAuthStatus);
-authRouter.post("/register", register);
-authRouter.post("/login", login);
-authRouter.post("/forgot-password", forgotPassword);
-authRouter.post("/reset-password", resetPassword);
-authRouter.post("/refresh", refreshSession);
-authRouter.post("/logout", logout);
+authRouter.get("/status", asyncHandler(getAuthStatus));
+authRouter.post("/register", asyncHandler(register));
+authRouter.post("/login", asyncHandler(login));
+authRouter.post("/forgot-password", asyncHandler(forgotPassword));
+authRouter.post("/reset-password", asyncHandler(resetPassword));
+authRouter.post("/refresh", asyncHandler(refreshSession));
+authRouter.post("/logout", asyncHandler(logout));

@@ -1,5 +1,6 @@
 import { Router } from "express";
 
+import { asyncHandler } from "../../lib/async-handler.js";
 import {
   getCatalogStatus,
   getProductBySlug,
@@ -9,7 +10,7 @@ import {
 
 export const catalogRouter = Router();
 
-catalogRouter.get("/status", getCatalogStatus);
-catalogRouter.get("/categories", listCategories);
-catalogRouter.get("/products", listProducts);
-catalogRouter.get("/products/:slug", getProductBySlug);
+catalogRouter.get("/status", asyncHandler(getCatalogStatus));
+catalogRouter.get("/categories", asyncHandler(listCategories));
+catalogRouter.get("/products", asyncHandler(listProducts));
+catalogRouter.get("/products/:slug", asyncHandler(getProductBySlug));
