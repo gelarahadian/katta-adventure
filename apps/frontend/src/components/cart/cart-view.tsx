@@ -159,8 +159,8 @@ export function CartView() {
             <span>{formatPrice(Number(cart.summary.subtotal))}</span>
           </div>
         </div>
-        <Button className="mt-5 w-full" disabled>
-          Lanjut checkout
+        <Button className="mt-5 w-full" asChild>
+          <Link href="/checkout">Lanjut checkout</Link>
         </Button>
       </aside>
     </div>

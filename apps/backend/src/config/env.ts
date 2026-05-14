@@ -1,7 +1,12 @@
 import { config } from "dotenv";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { z } from "zod";
 
-config();
+const currentDir = dirname(fileURLToPath(import.meta.url));
+const backendEnvPath = resolve(currentDir, "../../.env");
+
+config({ path: backendEnvPath });
 
 const envSchema = z.object({
   PORT: z.coerce.number().default(4000),
@@ -12,6 +17,11 @@ const envSchema = z.object({
   JWT_REFRESH_SECRET: z.string().min(1, "JWT_REFRESH_SECRET is required"),
   JWT_ACCESS_EXPIRES_IN_MINUTES: z.coerce.number().int().positive().default(15),
   JWT_REFRESH_EXPIRES_IN_DAYS: z.coerce.number().int().positive().default(14),
+  MIDTRANS_IS_PRODUCTION: z
+    .union([z.boolean(), z.literal("true"), z.literal("false")])
+    .optional()
+    .transform((value) => value === true || value === "true")
+    .default(false),
   MIDTRANS_SERVER_KEY: z.string().optional(),
   MIDTRANS_CLIENT_KEY: z.string().optional(),
   XENDIT_SECRET_KEY: z.string().optional(),

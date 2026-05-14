@@ -1,11 +1,9 @@
 import { Router } from "express";
 
+import { asyncHandler } from "../../lib/async-handler.js";
+import { createOrder, getOrderStatus } from "../../modules/order/order.controller.js";
+
 export const orderRouter = Router();
 
-orderRouter.get("/status", (_request, response) => {
-  response.status(200).json({
-    module: "orders",
-    status: "ready",
-    next: ["cart", "checkout", "payment", "tracking"]
-  });
-});
+orderRouter.get("/status", asyncHandler(getOrderStatus));
+orderRouter.post("/", asyncHandler(createOrder));
