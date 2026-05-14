@@ -1,9 +1,4 @@
-export type ProductCategory =
-  | "Backpacks"
-  | "Outerwear"
-  | "Camp Kitchen"
-  | "Shelter"
-  | "Accessories";
+export type ProductCategory = string;
 
 export type ProductTag = "Best Seller" | "New Arrival" | "Limited Drop" | "Trail Tested";
 
@@ -12,11 +7,11 @@ export interface Product {
   name: string;
   category: ProductCategory;
   price: number;
-  rating: number;
-  reviews: number;
+  rating?: number;
+  reviews?: number;
   image: string;
-  tag: ProductTag;
+  tag?: ProductTag | string;
   description: string;
-  colors: string[];
+  colors?: string[];
   inStock: boolean;
 }

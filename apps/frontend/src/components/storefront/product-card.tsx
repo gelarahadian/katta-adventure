@@ -14,7 +14,7 @@ interface ProductCardProps {
 
 export function ProductCard({ product, compact = false }: ProductCardProps) {
   return (
-    <article className="group overflow-hidden rounded-lg border border-border/70 bg-white/80 shadow-[0_12px_40px_-28px_rgba(35,56,42,0.5)] backdrop-blur-sm">
+    <article className="group flex h-full flex-col overflow-hidden rounded-lg border border-border/70 bg-white/80 shadow-[0_12px_40px_-28px_rgba(35,56,42,0.5)] backdrop-blur-sm">
       <Link href={`/products/${product.id}`} className="relative block aspect-[4/3] overflow-hidden bg-muted">
         <Image
           src={product.image}
@@ -25,12 +25,14 @@ export function ProductCard({ product, compact = false }: ProductCardProps) {
         />
       </Link>
 
-      <div className="p-5">
+      <div className="flex flex-1 flex-col p-5">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
-              {product.tag}
-            </p>
+            {product.tag ? (
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-primary">
+                {product.tag}
+              </p>
+            ) : null}
             <h3 className="mt-2 text-lg font-semibold tracking-tight text-foreground">
               <Link href={`/products/${product.id}`} className="hover:text-primary">
                 {product.name}
@@ -38,10 +40,12 @@ export function ProductCard({ product, compact = false }: ProductCardProps) {
             </h3>
             <p className="mt-1 text-sm text-muted-foreground">{product.category}</p>
           </div>
-          <div className="flex items-center gap-1 rounded-full bg-[#edf4ee] px-2.5 py-1 text-xs font-medium text-foreground">
-            <Star className="h-3.5 w-3.5 fill-current text-primary" />
-            <span>{product.rating}</span>
-          </div>
+          {typeof product.rating === "number" ? (
+            <div className="flex items-center gap-1 rounded-full bg-[#edf4ee] px-2.5 py-1 text-xs font-medium text-foreground">
+              <Star className="h-3.5 w-3.5 fill-current text-primary" />
+              <span>{product.rating}</span>
+            </div>
+          ) : null}
         </div>
 
         {!compact ? (
@@ -49,7 +53,7 @@ export function ProductCard({ product, compact = false }: ProductCardProps) {
         ) : null}
 
         <div className="mt-5 flex flex-wrap gap-2">
-          {product.colors.map((color) => (
+          {(product.colors ?? []).map((color) => (
             <span
               key={color}
               className="rounded-full border border-border/80 px-2.5 py-1 text-xs text-muted-foreground"
@@ -59,19 +63,21 @@ export function ProductCard({ product, compact = false }: ProductCardProps) {
           ))}
         </div>
 
-        <div className="mt-6 flex items-end justify-between gap-4">
+        <div className="mt-auto pt-6">
           <div>
             <p className="text-lg font-semibold text-foreground">{formatPrice(product.price)}</p>
-            <p className="text-xs text-muted-foreground">{product.reviews} reviews</p>
+            {typeof product.reviews === "number" ? (
+              <p className="text-xs text-muted-foreground">{product.reviews} reviews</p>
+            ) : null}
           </div>
-          <div className="flex items-center gap-2">
-            <Button asChild size={compact ? "sm" : "default"} variant="outline">
+          <div className="mt-4 grid grid-cols-1 gap-2">
+            <Button asChild size={compact ? "sm" : "default"} variant="outline" className="w-full">
               <Link href={`/products/${product.id}`}>Details</Link>
             </Button>
             <Button
               size={compact ? "sm" : "default"}
               variant={product.inStock ? "default" : "secondary"}
-              className={cn(!product.inStock && "text-muted-foreground")}
+              className={cn("w-full", !product.inStock && "text-muted-foreground")}
             >
               {product.inStock ? "Add to cart" : "Notify me"}
             </Button>

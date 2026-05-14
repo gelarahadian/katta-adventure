@@ -14,6 +14,7 @@
     "lint:frontend": "npm --workspace apps/frontend run lint",
     "prisma:generate": "npm --workspace apps/backend run prisma:generate",
     "prisma:validate": "npm --workspace apps/backend run prisma:validate",
-    "prisma:studio": "sh -c 'set -a; . ./apps/backend/.env; set +a; npx prisma studio --schema ./prisma/schema.prisma'"
+    "prisma:studio": "sh -c 'set -a; . ./apps/backend/.env; set +a; npx prisma studio --schema ./prisma/schema.prisma'",
+    "prisma:seed": "sh -c 'set -a; . ./apps/backend/.env; set +a; node ./prisma/seed.js'"
   }
 }

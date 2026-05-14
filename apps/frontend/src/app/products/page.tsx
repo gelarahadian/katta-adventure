@@ -6,8 +6,10 @@ import { FilterChip } from "@/components/storefront/filter-chip";
 import { ProductCard } from "@/components/storefront/product-card";
 import { SectionHeading } from "@/components/storefront/section-heading";
 import { SiteHeader } from "@/components/storefront/site-header";
-import { getProductsByCategory, productCategories } from "@/data/products";
+import { formatPrice } from "@/data/products";
+import { getCatalogCategories, getCatalogProducts } from "@/lib/catalog-client";
 import { Button } from "@/components/ui/button";
+import type { Product } from "@/types/catalog";
 
 export const metadata: Metadata = {
   title: "Products | Katta Adventure",
@@ -17,13 +19,44 @@ export const metadata: Metadata = {
 interface ProductsPageProps {
   searchParams?: Promise<{
     category?: string;
+    search?: string;
+    sort?: "newest" | "oldest" | "price_asc" | "price_desc" | "name_asc" | "name_desc";
   }>;
+}
+
+function mapProductToCard(product: Awaited<ReturnType<typeof getCatalogProducts>>["items"][number]): Product {
+  return {
+    id: product.slug,
+    name: product.name,
+    category: product.category.name,
+    price: Number(product.price),
+    image:
+      product.imageUrl ??
+      "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?auto=format&fit=crop&w=900&q=80",
+    description: product.shortDescription ?? product.description ?? "Produk outdoor berkualitas.",
+    inStock: product.stock > 0,
+    tag: product.isFeatured ? "Best Seller" : undefined
+  };
 }
 
 export default async function ProductsPage({ searchParams }: ProductsPageProps) {
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
-  const selectedCategory = resolvedSearchParams?.category ?? "All";
-  const filteredProducts = getProductsByCategory(selectedCategory);
+  const selectedCategory = resolvedSearchParams?.category ?? "all";
+  const search = resolvedSearchParams?.search?.trim() ?? "";
+  const sort = resolvedSearchParams?.sort ?? "newest";
+
+  const [categories, productsResponse] = await Promise.all([
+    getCatalogCategories(),
+    getCatalogProducts({
+      category: selectedCategory === "all" ? undefined : selectedCategory,
+      search: search || undefined,
+      sort,
+      page: 1,
+      pageSize: 12
+    })
+  ]);
+
+  const filteredProducts = productsResponse.items.map(mapProductToCard);
 
   return (
     <main className="min-h-screen">
@@ -40,7 +73,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
           <div className="grid gap-4 rounded-lg border border-border/70 bg-white/70 p-5 backdrop-blur-sm sm:grid-cols-3">
             <div>
               <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Items</p>
-              <p className="mt-2 text-2xl font-semibold">{filteredProducts.length}</p>
+              <p className="mt-2 text-2xl font-semibold">{productsResponse.meta.total}</p>
             </div>
             <div>
               <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Stock</p>
@@ -53,7 +86,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
               <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Sort</p>
               <p className="mt-2 flex items-center gap-2 text-sm font-medium text-foreground">
                 <ArrowUpDown className="h-4 w-4 text-primary" />
-                Featured first
+                {sort.replace("_", " ")}
               </p>
             </div>
           </div>
@@ -61,45 +94,75 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
 
         <div className="mt-8 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex flex-wrap gap-2">
-            <FilterChip label="All" href="/products" active={selectedCategory === "All"} />
-            {productCategories.map((category) => (
+            <FilterChip label="All" href="/products" active={selectedCategory === "all"} />
+            {categories.map((category) => (
               <FilterChip
-                key={category}
-                label={category}
-                href={`/products?category=${encodeURIComponent(category)}`}
-                active={selectedCategory === category}
+                key={category.id}
+                label={category.name}
+                href={`/products?category=${encodeURIComponent(category.slug)}${search ? `&search=${encodeURIComponent(search)}` : ""}${sort ? `&sort=${encodeURIComponent(sort)}` : ""}`}
+                active={selectedCategory === category.slug}
               />
             ))}
           </div>
 
-          <div className="flex items-center gap-3">
-            <Button variant="outline" className="justify-start">
-              <SlidersHorizontal className="h-4 w-4" />
-              Filters
+          <form className="flex items-center gap-3" action="/products" method="get">
+            <input type="hidden" name="category" value={selectedCategory} />
+            <div className="relative">
+              <SlidersHorizontal className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                name="search"
+                defaultValue={search}
+                placeholder="Cari nama, SKU, slug"
+                className="h-10 w-56 rounded-md border border-border bg-white pl-9 pr-3 text-sm outline-none ring-primary/50 placeholder:text-muted-foreground focus:ring-2"
+              />
+            </div>
+            <select
+              name="sort"
+              defaultValue={sort}
+              className="h-10 rounded-md border border-border bg-white px-3 text-sm outline-none ring-primary/50 focus:ring-2"
+            >
+              <option value="newest">Newest</option>
+              <option value="oldest">Oldest</option>
+              <option value="price_asc">Price low-high</option>
+              <option value="price_desc">Price high-low</option>
+              <option value="name_asc">Name A-Z</option>
+              <option value="name_desc">Name Z-A</option>
+            </select>
+            <Button type="submit" variant="outline" className="justify-start">
+              Apply
             </Button>
             <Button asChild variant="secondary">
               <Link href="/">Back home</Link>
             </Button>
-          </div>
+          </form>
         </div>
 
         <div className="mt-10 grid gap-8 lg:grid-cols-[280px_1fr]">
           <aside className="h-fit rounded-lg border border-border/70 bg-white/70 p-6 backdrop-blur-sm">
             <p className="text-sm font-semibold uppercase tracking-[0.16em] text-primary">
-              Browse by use
+              Filter snapshot
             </p>
             <ul className="mt-5 space-y-4 text-sm text-muted-foreground">
-              <li>Summit daypacks for fast movement.</li>
-              <li>Layering outerwear for wet trail mornings.</li>
-              <li>Compact kitchen gear for quick camp setup.</li>
-              <li>Shelter essentials for longer overnight trips.</li>
+              <li>Category: {selectedCategory === "all" ? "All" : selectedCategory}</li>
+              <li>Search: {search || "-"}</li>
+              <li>Sort: {sort}</li>
+              <li>Total products: {productsResponse.meta.total}</li>
             </ul>
+            {filteredProducts[0] ? (
+              <p className="mt-6 text-sm font-medium text-foreground">
+                Harga mulai {formatPrice(Math.min(...filteredProducts.map((item) => item.price)))}
+              </p>
+            ) : null}
           </aside>
 
           <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
-            {filteredProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
+            {filteredProducts.length > 0 ? (
+              filteredProducts.map((product) => <ProductCard key={product.id} product={product} />)
+            ) : (
+              <div className="rounded-lg border border-border/70 bg-white/70 p-6 text-sm text-muted-foreground sm:col-span-2 xl:col-span-3">
+                Produk tidak ditemukan untuk filter ini. Coba ubah kategori atau kata kunci pencarian.
+              </div>
+            )}
           </div>
         </div>
       </section>
