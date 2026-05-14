@@ -1,4 +1,4 @@
-import type { CatalogCategory, CatalogProductsResponse } from "@/types/catalog-api";
+import type { CatalogCategory, CatalogProduct, CatalogProductsResponse } from "@/types/catalog-api";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -58,4 +58,9 @@ export async function getCatalogProducts(params: GetCatalogProductsParams) {
 
   const suffix = query.toString();
   return request<CatalogProductsResponse>(`/api/v1/catalog/products${suffix ? `?${suffix}` : ""}`);
+}
+
+export async function getCatalogProductBySlug(slug: string) {
+  const response = await request<{ item: CatalogProduct }>(`/api/v1/catalog/products/${encodeURIComponent(slug)}`);
+  return response.item;
 }

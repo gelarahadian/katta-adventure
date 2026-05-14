@@ -7,12 +7,9 @@ import { notFound } from "next/navigation";
 import { ProductCard } from "@/components/storefront/product-card";
 import { SectionHeading } from "@/components/storefront/section-heading";
 import { SiteHeader } from "@/components/storefront/site-header";
-import {
-  formatPrice,
-  getProductById,
-  getRelatedProducts,
-  products
-} from "@/data/products";
+import { formatPrice } from "@/data/products";
+import { getCatalogProductBySlug, getCatalogProducts } from "@/lib/catalog-client";
+import { mapCatalogProductToCard } from "@/lib/catalog-mappers";
 import { Button } from "@/components/ui/button";
 
 interface ProductDetailPageProps {
@@ -22,38 +19,46 @@ interface ProductDetailPageProps {
 }
 
 export async function generateStaticParams() {
-  return products.map((product) => ({
-    productId: product.id
-  }));
+  const response = await getCatalogProducts({ page: 1, pageSize: 50, sort: "newest" });
+  return response.items.map((product) => ({ productId: product.slug }));
 }
 
 export async function generateMetadata({
   params
 }: ProductDetailPageProps): Promise<Metadata> {
   const { productId } = await params;
-  const product = getProductById(productId);
-
-  if (!product) {
+  try {
+    const product = await getCatalogProductBySlug(productId);
+    return {
+      title: `${product.name} | Katta Adventure`,
+      description: product.description ?? product.shortDescription ?? "Detail produk Katta Adventure"
+    };
+  } catch {
     return {
       title: "Product Not Found | Katta Adventure"
     };
   }
-
-  return {
-    title: `${product.name} | Katta Adventure`,
-    description: product.description
-  };
 }
 
 export default async function ProductDetailPage({ params }: ProductDetailPageProps) {
   const { productId } = await params;
-  const product = getProductById(productId);
-
-  if (!product) {
+  let product;
+  try {
+    product = await getCatalogProductBySlug(productId);
+  } catch {
     notFound();
   }
 
-  const relatedProducts = getRelatedProducts(product.id);
+  const relatedResponse = await getCatalogProducts({
+    category: product.category.slug,
+    page: 1,
+    pageSize: 4,
+    sort: "newest"
+  });
+  const relatedProducts = relatedResponse.items
+    .filter((item) => item.slug !== product.slug)
+    .slice(0, 3)
+    .map(mapCatalogProductToCard);
 
   return (
     <main className="min-h-screen">
@@ -74,12 +79,14 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
 
         <div className="mt-8 grid gap-8 lg:grid-cols-[1.05fr_0.95fr]">
           <div className="relative overflow-hidden rounded-lg border border-border/70 bg-white/70 shadow-[0_24px_70px_-48px_rgba(30,48,39,0.65)]">
-            <div className="absolute left-5 top-5 z-10 rounded-full bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-primary backdrop-blur-sm">
-              {product.tag}
-            </div>
+            {product.isFeatured ? (
+              <div className="absolute left-5 top-5 z-10 rounded-full bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-primary backdrop-blur-sm">
+                Featured
+              </div>
+            ) : null}
             <div className="relative aspect-[4/4.3] bg-muted">
               <Image
-                src={product.image}
+                src={product.imageUrl ?? "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?auto=format&fit=crop&w=900&q=80"}
                 alt={product.name}
                 fill
                 priority
@@ -91,7 +98,7 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
 
           <div className="flex flex-col justify-center">
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">
-              {product.category}
+              {product.category.name}
             </p>
             <h1 className="mt-3 font-serif text-4xl tracking-tight text-foreground sm:text-5xl">
               {product.name}
@@ -100,35 +107,24 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
             <div className="mt-5 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
               <div className="flex items-center gap-2 rounded-full bg-white/75 px-3 py-1.5">
                 <Star className="h-4 w-4 fill-current text-primary" />
-                <span className="font-medium text-foreground">{product.rating}</span>
-                <span>{product.reviews} reviews</span>
+                <span className="font-medium text-foreground">Catalog item</span>
+                <span>{product.sku}</span>
               </div>
               <div className="rounded-full bg-white/75 px-3 py-1.5">
-                {product.inStock ? "Ready stock" : "Limited availability"}
+                {product.stock > 0 ? "Ready stock" : "Limited availability"}
               </div>
             </div>
 
             <p className="mt-6 max-w-xl text-base leading-7 text-muted-foreground">
-              {product.description}
+              {product.description ?? product.shortDescription ?? "Detail produk belum tersedia."}
             </p>
-
-            <div className="mt-8 flex flex-wrap gap-2">
-              {product.colors.map((color) => (
-                <span
-                  key={color}
-                  className="rounded-full border border-border/80 bg-white/70 px-3 py-1.5 text-sm text-muted-foreground"
-                >
-                  {color}
-                </span>
-              ))}
-            </div>
 
             <div className="mt-8 rounded-lg border border-border/70 bg-white/70 p-5 backdrop-blur-sm">
               <div className="flex items-end justify-between gap-4">
                 <div>
                   <p className="text-sm text-muted-foreground">Price</p>
                   <p className="mt-1 text-3xl font-semibold tracking-tight text-foreground">
-                    {formatPrice(product.price)}
+                    {formatPrice(Number(product.price))}
                   </p>
                 </div>
                 <Button variant="outline" asChild>
@@ -137,8 +133,8 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
               </div>
 
               <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-                <Button className="sm:flex-1" disabled={!product.inStock}>
-                  {product.inStock ? "Add to cart" : "Notify me"}
+                <Button className="sm:flex-1" disabled={product.stock <= 0}>
+                  {product.stock > 0 ? "Add to cart" : "Notify me"}
                 </Button>
                 <Button variant="outline" className="sm:flex-1">
                   Save for later

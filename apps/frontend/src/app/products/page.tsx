@@ -8,8 +8,8 @@ import { SectionHeading } from "@/components/storefront/section-heading";
 import { SiteHeader } from "@/components/storefront/site-header";
 import { formatPrice } from "@/data/products";
 import { getCatalogCategories, getCatalogProducts } from "@/lib/catalog-client";
+import { mapCatalogProductToCard } from "@/lib/catalog-mappers";
 import { Button } from "@/components/ui/button";
-import type { Product } from "@/types/catalog";
 
 export const metadata: Metadata = {
   title: "Products | Katta Adventure",
@@ -22,21 +22,6 @@ interface ProductsPageProps {
     search?: string;
     sort?: "newest" | "oldest" | "price_asc" | "price_desc" | "name_asc" | "name_desc";
   }>;
-}
-
-function mapProductToCard(product: Awaited<ReturnType<typeof getCatalogProducts>>["items"][number]): Product {
-  return {
-    id: product.slug,
-    name: product.name,
-    category: product.category.name,
-    price: Number(product.price),
-    image:
-      product.imageUrl ??
-      "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?auto=format&fit=crop&w=900&q=80",
-    description: product.shortDescription ?? product.description ?? "Produk outdoor berkualitas.",
-    inStock: product.stock > 0,
-    tag: product.isFeatured ? "Best Seller" : undefined
-  };
 }
 
 export default async function ProductsPage({ searchParams }: ProductsPageProps) {
@@ -56,7 +41,7 @@ export default async function ProductsPage({ searchParams }: ProductsPageProps) 
     })
   ]);
 
-  const filteredProducts = productsResponse.items.map(mapProductToCard);
+  const filteredProducts = productsResponse.items.map(mapCatalogProductToCard);
 
   return (
     <main className="min-h-screen">
