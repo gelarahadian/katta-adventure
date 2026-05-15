@@ -135,6 +135,9 @@ export function CheckoutResultView({ initialVariant }: CheckoutResultViewProps) 
         <Button variant="outline" onClick={() => (status ? void fetchStatus(status.orderNumber) : undefined)}>
           Cek lagi
         </Button>
+        <Button asChild variant="outline">
+          <Link href="/orders">Lihat riwayat pesanan</Link>
+        </Button>
         <Button asChild variant="secondary">
           <Link href="/cart">Kembali ke cart</Link>
         </Button>

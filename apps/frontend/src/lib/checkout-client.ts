@@ -13,9 +13,13 @@ function getApiBaseUrl() {
 async function parseError(response: Response) {
   try {
     const payload = (await response.json()) as { message?: string };
-    return new Error(payload.message ?? "Checkout failed");
+    return new Error(payload.message ?? `Request failed (${response.status})`);
   } catch {
-    return new Error("Checkout failed");
+    const text = await response.text().catch(() => "");
+    if (text) {
+      return new Error(text);
+    }
+    return new Error(`Request failed (${response.status})`);
   }
 }
 
