@@ -1,5 +1,7 @@
 import { OrderStatus, PaymentStatus, ProductStatus, UserRole } from "@prisma/client";
 
+import { AppError } from "../../lib/app-error.js";
+
 import { prisma } from "../../lib/prisma.js";
 
 export class AdminService {
@@ -69,6 +71,79 @@ export class AdminService {
         createdAt: order.createdAt.toISOString(),
         customer: order.user
       }))
+    };
+  }
+
+  async listOrders() {
+    const orders = await prisma.order.findMany({
+      orderBy: { createdAt: "desc" },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        },
+        payments: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          select: {
+            id: true,
+            status: true,
+            provider: true
+          }
+        }
+      }
+    });
+
+    return {
+      items: orders.map((order) => ({
+        id: order.id,
+        orderNumber: order.orderNumber,
+        status: order.status,
+        totalAmount: order.totalAmount.toString(),
+        createdAt: order.createdAt.toISOString(),
+        updatedAt: order.updatedAt.toISOString(),
+        customer: order.user,
+        payment: order.payments[0] ?? null
+      }))
+    };
+  }
+
+  async updateOrderStatus(orderId: string, status: OrderStatus) {
+    const existing = await prisma.order.findUnique({
+      where: { id: orderId },
+      select: { id: true, status: true }
+    });
+
+    if (!existing) {
+      throw new AppError("Order not found", 404);
+    }
+
+    const now = new Date();
+    const updated = await prisma.order.update({
+      where: { id: orderId },
+      data: {
+        status,
+        shippedAt: status === OrderStatus.SHIPPED ? now : undefined,
+        deliveredAt: status === OrderStatus.DELIVERED ? now : undefined,
+        cancelledAt: status === OrderStatus.CANCELLED ? now : undefined
+      },
+      select: {
+        id: true,
+        orderNumber: true,
+        status: true,
+        updatedAt: true
+      }
+    });
+
+    return {
+      message: "Order status updated",
+      order: {
+        ...updated,
+        updatedAt: updated.updatedAt.toISOString()
+      }
     };
   }
 }

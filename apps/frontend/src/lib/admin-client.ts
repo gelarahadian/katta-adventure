@@ -51,3 +51,60 @@ export async function getAdminOverview() {
 
   return (await response.json()) as AdminOverviewResponse;
 }
+
+export interface AdminOrderListResponse {
+  items: Array<{
+    id: string;
+    orderNumber: string;
+    status: string;
+    totalAmount: string;
+    createdAt: string;
+    updatedAt: string;
+    customer: {
+      id: string;
+      name: string;
+      email: string;
+    };
+    payment: {
+      id: string;
+      status: string;
+      provider: string;
+    } | null;
+  }>;
+}
+
+export async function listAdminOrders() {
+  const response = await fetch(`${getApiBaseUrl()}/api/v1/admin/orders`, {
+    cache: "no-store"
+  });
+
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+
+  return (await response.json()) as AdminOrderListResponse;
+}
+
+export async function updateAdminOrderStatus(orderId: string, status: string) {
+  const response = await fetch(`${getApiBaseUrl()}/api/v1/admin/orders/${encodeURIComponent(orderId)}/status`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ status })
+  });
+
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+
+  return (await response.json()) as {
+    message: string;
+    order: {
+      id: string;
+      orderNumber: string;
+      status: string;
+      updatedAt: string;
+    };
+  };
+}
