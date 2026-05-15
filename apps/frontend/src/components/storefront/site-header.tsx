@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Menu, Search } from "lucide-react";
 
+import { AuthActions } from "@/components/auth/auth-actions";
 import { cn } from "@/lib/utils";
 import { CartIconButton } from "@/components/cart/cart-icon-button";
 import { Button } from "@/components/ui/button";
@@ -47,9 +48,7 @@ export function SiteHeader({ currentPath }: SiteHeaderProps) {
         </nav>
 
         <div className="flex items-center gap-2">
-          <Button asChild variant="secondary" className="hidden sm:inline-flex">
-            <Link href="/login">Login</Link>
-          </Button>
+          <AuthActions />
           <Button size="icon" variant="outline" aria-label="Search">
             <Search className="h-4 w-4" />
           </Button>

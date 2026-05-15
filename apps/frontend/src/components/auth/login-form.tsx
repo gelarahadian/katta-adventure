@@ -1,11 +1,14 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { loginRequest } from "@/lib/auth-client";
+import { setAuthSession } from "@/lib/auth-session";
 import { Button } from "@/components/ui/button";
 
 export function LoginForm() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -25,7 +28,10 @@ export function LoginForm() {
     setIsSubmitting(true);
     try {
       const response = await loginRequest({ email, password });
+      setAuthSession(response.user, response.accessToken);
       setSuccess(response.message);
+      router.push("/orders");
+      router.refresh();
     } catch (submissionError) {
       setError(submissionError instanceof Error ? submissionError.message : "Login gagal.");
     } finally {

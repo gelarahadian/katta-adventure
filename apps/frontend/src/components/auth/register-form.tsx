@@ -1,11 +1,14 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
 
 import { registerRequest } from "@/lib/auth-client";
+import { setAuthSession } from "@/lib/auth-session";
 import { Button } from "@/components/ui/button";
 
 export function RegisterForm() {
+  const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -27,7 +30,10 @@ export function RegisterForm() {
     setIsSubmitting(true);
     try {
       const response = await registerRequest({ name, email, password, phone: phone || undefined });
+      setAuthSession(response.user, response.accessToken);
       setSuccess(response.message);
+      router.push("/orders");
+      router.refresh();
     } catch (submissionError) {
       setError(submissionError instanceof Error ? submissionError.message : "Registrasi gagal.");
     } finally {

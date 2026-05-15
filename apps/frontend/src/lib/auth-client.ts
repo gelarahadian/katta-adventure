@@ -62,3 +62,20 @@ export function loginRequest(payload: LoginPayload) {
 export function forgotPasswordRequest(payload: ForgotPasswordPayload) {
   return request<ForgotPasswordResponse>("/api/v1/auth/forgot-password", payload);
 }
+
+export async function logoutRequest() {
+  const response = await fetch(`${getApiBaseUrl()}/api/v1/auth/logout`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    credentials: "include",
+    body: JSON.stringify({})
+  });
+
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+
+  return (await response.json()) as { message: string };
+}
