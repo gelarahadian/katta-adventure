@@ -29,3 +29,12 @@ export interface CreateOrderResponse {
     redirectUrl: string;
   } | null;
 }
+
+export interface OrderStatusResponse {
+  orderNumber: string;
+  orderStatus: string;
+  paymentStatus: string;
+  totalAmount: string;
+  updatedAt: string;
+  state: "success" | "pending" | "failed" | "refunded";
+}

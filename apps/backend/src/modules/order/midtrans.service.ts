@@ -49,6 +49,11 @@ export async function createMidtransSnapTransaction(input: MidtransCreateTransac
         first_name: input.customer.firstName,
         email: input.customer.email,
         phone: input.customer.phone
+      },
+      callbacks: {
+        finish: `${env.APP_ORIGIN}/checkout/success?order_id=${encodeURIComponent(input.orderNumber)}`,
+        unfinish: `${env.APP_ORIGIN}/checkout/pending?order_id=${encodeURIComponent(input.orderNumber)}`,
+        error: `${env.APP_ORIGIN}/checkout/failed?order_id=${encodeURIComponent(input.orderNumber)}`
       }
     })
   });

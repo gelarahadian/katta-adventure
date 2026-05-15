@@ -15,4 +15,21 @@ export const createOrderSchema = z.object({
   paymentProvider: z.nativeEnum(PaymentProvider).default(PaymentProvider.MANUAL)
 });
 
+export const midtransWebhookSchema = z.object({
+  order_id: z.string().min(1),
+  status_code: z.string().min(1),
+  gross_amount: z.string().min(1),
+  signature_key: z.string().min(1),
+  transaction_status: z.string().min(1),
+  fraud_status: z.string().optional(),
+  transaction_id: z.string().optional(),
+  payment_type: z.string().optional()
+});
+
+export const orderStatusParamsSchema = z.object({
+  orderNumber: z.string().trim().min(1)
+});
+
 export type CreateOrderInput = z.infer<typeof createOrderSchema>;
+export type MidtransWebhookInput = z.infer<typeof midtransWebhookSchema>;
+export type OrderStatusParamsInput = z.infer<typeof orderStatusParamsSchema>;

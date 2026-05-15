@@ -8,12 +8,14 @@ import {
   ProductStatus,
   UserStatus,
 } from "@prisma/client";
+import { createHash } from "node:crypto";
 
 import { AppError } from "../../lib/app-error.js";
 import { prisma } from "../../lib/prisma.js";
+import { env } from "../../config/env.js";
 import { createMidtransSnapTransaction } from "./midtrans.service.js";
 
-import type { CreateOrderInput } from "./order.schemas.js";
+import type { CreateOrderInput, MidtransWebhookInput } from "./order.schemas.js";
 
 const guestUserEmail = "guest@katta.local";
 const shippingAmount = 20000;
@@ -64,6 +66,82 @@ function createOrderNumber() {
   const stamp = Date.now().toString().slice(-8);
   const random = Math.floor(Math.random() * 900 + 100).toString();
   return `KTA-${stamp}${random}`;
+}
+
+function isMidtransSignatureValid(payload: MidtransWebhookInput) {
+  const serverKey = env.MIDTRANS_SERVER_KEY;
+  if (!serverKey) {
+    return false;
+  }
+
+  const raw = `${payload.order_id}${payload.status_code}${payload.gross_amount}${serverKey}`;
+  const hash = createHash("sha512").update(raw).digest("hex");
+  return hash === payload.signature_key;
+}
+
+function mapMidtransStatusToPaymentStatus(payload: MidtransWebhookInput): PaymentStatus {
+  if (payload.transaction_status === "settlement") {
+    return PaymentStatus.PAID;
+  }
+
+  if (payload.transaction_status === "capture") {
+    if (payload.fraud_status === "challenge") {
+      return PaymentStatus.PENDING;
+    }
+    return PaymentStatus.PAID;
+  }
+
+  if (payload.transaction_status === "pending") {
+    return PaymentStatus.PENDING;
+  }
+
+  if (payload.transaction_status === "expire") {
+    return PaymentStatus.EXPIRED;
+  }
+
+  if (payload.transaction_status === "refund" || payload.transaction_status === "partial_refund") {
+    return PaymentStatus.REFUNDED;
+  }
+
+  if (payload.transaction_status === "cancel" || payload.transaction_status === "deny") {
+    return PaymentStatus.CANCELLED;
+  }
+
+  return PaymentStatus.FAILED;
+}
+
+function mapPaymentToOrderStatus(status: PaymentStatus): OrderStatus {
+  if (status === PaymentStatus.PAID) {
+    return OrderStatus.PAID;
+  }
+  if (status === PaymentStatus.EXPIRED || status === PaymentStatus.CANCELLED || status === PaymentStatus.FAILED) {
+    return OrderStatus.CANCELLED;
+  }
+  if (status === PaymentStatus.REFUNDED) {
+    return OrderStatus.REFUNDED;
+  }
+  return OrderStatus.AWAITING_PAYMENT;
+}
+
+function mapOrderAndPaymentToResultState(orderStatus: OrderStatus, paymentStatus: PaymentStatus) {
+  if (orderStatus === OrderStatus.PAID || paymentStatus === PaymentStatus.PAID) {
+    return "success" as const;
+  }
+
+  if (
+    orderStatus === OrderStatus.CANCELLED ||
+    paymentStatus === PaymentStatus.CANCELLED ||
+    paymentStatus === PaymentStatus.EXPIRED ||
+    paymentStatus === PaymentStatus.FAILED
+  ) {
+    return "failed" as const;
+  }
+
+  if (orderStatus === OrderStatus.REFUNDED || paymentStatus === PaymentStatus.REFUNDED) {
+    return "refunded" as const;
+  }
+
+  return "pending" as const;
 }
 
 export class OrderService {
@@ -231,6 +309,207 @@ export class OrderService {
         itemCount: result.order.items.length
       },
       payment
+    };
+  }
+
+  async handleMidtransWebhook(payload: MidtransWebhookInput) {
+    if (!isMidtransSignatureValid(payload)) {
+      throw new AppError("Invalid Midtrans signature", 401);
+    }
+
+    const payment = await prisma.payment.findFirst({
+      where: {
+        provider: PaymentProvider.MIDTRANS,
+        OR: [{ providerReference: payload.order_id }, { order: { orderNumber: payload.order_id } }]
+      },
+      include: {
+        order: {
+          select: {
+            id: true,
+            status: true
+          }
+        }
+      }
+    });
+
+    if (!payment) {
+      throw new AppError("Payment not found for Midtrans order", 404);
+    }
+
+    const nextPaymentStatus = mapMidtransStatusToPaymentStatus(payload);
+    const nextOrderStatus = mapPaymentToOrderStatus(nextPaymentStatus);
+
+    const updatedPayment = await prisma.payment.update({
+      where: {
+        id: payment.id
+      },
+      data: {
+        status: nextPaymentStatus,
+        methodType: payload.payment_type ? PaymentMethodType.BANK_TRANSFER : payment.methodType,
+        paidAt: nextPaymentStatus === PaymentStatus.PAID ? new Date() : payment.paidAt,
+        providerReference: payload.order_id,
+        providerPayload: payload as unknown as Prisma.JsonObject
+      }
+    });
+
+    await prisma.order.update({
+      where: {
+        id: payment.order.id
+      },
+      data: {
+        status: nextOrderStatus,
+        paidAt: nextPaymentStatus === PaymentStatus.PAID ? new Date() : undefined,
+        cancelledAt:
+          nextOrderStatus === OrderStatus.CANCELLED && payment.order.status !== OrderStatus.CANCELLED
+            ? new Date()
+            : undefined
+      }
+    });
+
+    return {
+      message: "Webhook processed",
+      payment: {
+        id: updatedPayment.id,
+        status: updatedPayment.status
+      },
+      order: {
+        id: payment.order.id,
+        status: nextOrderStatus
+      }
+    };
+  }
+
+  async getOrderPaymentStatus(orderNumber: string) {
+    const order = await prisma.order.findUnique({
+      where: {
+        orderNumber
+      },
+      include: {
+        payments: {
+          orderBy: {
+            createdAt: "desc"
+          },
+          take: 1
+        }
+      }
+    });
+
+    if (!order) {
+      throw new AppError("Order not found", 404);
+    }
+
+    const latestPayment = order.payments[0];
+    if (!latestPayment) {
+      throw new AppError("Payment record not found", 404);
+    }
+
+    return {
+      orderNumber: order.orderNumber,
+      orderStatus: order.status,
+      paymentStatus: latestPayment.status,
+      totalAmount: order.totalAmount.toString(),
+      updatedAt: order.updatedAt.toISOString(),
+      state: mapOrderAndPaymentToResultState(order.status, latestPayment.status)
+    };
+  }
+
+  async listOrders() {
+    const userId = await getOrCreateGuestUserId();
+
+    const orders = await prisma.order.findMany({
+      where: {
+        userId
+      },
+      include: {
+        payments: {
+          orderBy: {
+            createdAt: "desc"
+          },
+          take: 1
+        }
+      },
+      orderBy: {
+        createdAt: "desc"
+      }
+    });
+
+    return {
+      items: orders.map((order) => {
+        const payment = order.payments[0];
+        return {
+          id: order.id,
+          orderNumber: order.orderNumber,
+          orderStatus: order.status,
+          paymentStatus: payment?.status ?? null,
+          totalAmount: order.totalAmount.toString(),
+          createdAt: order.createdAt.toISOString(),
+          updatedAt: order.updatedAt.toISOString(),
+          state: payment
+            ? mapOrderAndPaymentToResultState(order.status, payment.status)
+            : mapOrderAndPaymentToResultState(order.status, PaymentStatus.PENDING)
+        };
+      })
+    };
+  }
+
+  async getOrderDetail(orderNumber: string) {
+    const userId = await getOrCreateGuestUserId();
+
+    const order = await prisma.order.findFirst({
+      where: {
+        orderNumber,
+        userId
+      },
+      include: {
+        items: true,
+        payments: {
+          orderBy: {
+            createdAt: "desc"
+          },
+          take: 1
+        },
+        shippingAddress: true
+      }
+    });
+
+    if (!order) {
+      throw new AppError("Order not found", 404);
+    }
+
+    const payment = order.payments[0];
+
+    return {
+      id: order.id,
+      orderNumber: order.orderNumber,
+      orderStatus: order.status,
+      paymentStatus: payment?.status ?? null,
+      subtotalAmount: order.subtotalAmount.toString(),
+      shippingAmount: order.shippingAmount.toString(),
+      totalAmount: order.totalAmount.toString(),
+      createdAt: order.createdAt.toISOString(),
+      updatedAt: order.updatedAt.toISOString(),
+      state: payment
+        ? mapOrderAndPaymentToResultState(order.status, payment.status)
+        : mapOrderAndPaymentToResultState(order.status, PaymentStatus.PENDING),
+      shippingAddress: {
+        recipientName: order.shippingAddress.recipientName,
+        phone: order.shippingAddress.phone,
+        province: order.shippingAddress.province,
+        city: order.shippingAddress.city,
+        district: order.shippingAddress.district,
+        postalCode: order.shippingAddress.postalCode,
+        line1: order.shippingAddress.line1,
+        line2: order.shippingAddress.line2
+      },
+      items: order.items.map((item) => ({
+        id: item.id,
+        productName: item.productName,
+        productSku: item.productSku,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice.toString(),
+        totalPrice: item.totalPrice.toString(),
+        productImage: item.productImage
+      }))
     };
   }
 }
