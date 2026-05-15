@@ -30,7 +30,7 @@ export function LoginForm() {
       const response = await loginRequest({ email, password });
       setAuthSession(response.user, response.accessToken);
       setSuccess(response.message);
-      router.push("/orders");
+      router.push(response.user.role === "admin" ? "/admin" : "/orders");
       router.refresh();
     } catch (submissionError) {
       setError(submissionError instanceof Error ? submissionError.message : "Login gagal.");

@@ -5,17 +5,24 @@ import type { AuthUser } from "@/types/auth";
 const tokenKey = "ka_access_token";
 const userKey = "ka_auth_user";
 const sessionCookie = "ka_session";
+const roleCookie = "ka_role";
+
+function normalizeRole(role: AuthUser["role"] | string) {
+  return role.toString().toLowerCase() === "admin" ? "admin" : "customer";
+}
 
 export function setAuthSession(user: AuthUser, accessToken: string) {
   localStorage.setItem(tokenKey, accessToken);
   localStorage.setItem(userKey, JSON.stringify(user));
   document.cookie = `${sessionCookie}=1; Path=/; Max-Age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+  document.cookie = `${roleCookie}=${normalizeRole(user.role)}; Path=/; Max-Age=${60 * 60 * 24 * 7}; SameSite=Lax`;
 }
 
 export function clearAuthSession() {
   localStorage.removeItem(tokenKey);
   localStorage.removeItem(userKey);
   document.cookie = `${sessionCookie}=; Path=/; Max-Age=0; SameSite=Lax`;
+  document.cookie = `${roleCookie}=; Path=/; Max-Age=0; SameSite=Lax`;
 }
 
 export function hasAuthSession() {
@@ -39,4 +46,5 @@ export function getAuthUser() {
 
 export function updateStoredAuthUser(user: AuthUser) {
   localStorage.setItem(userKey, JSON.stringify(user));
+  document.cookie = `${roleCookie}=${normalizeRole(user.role)}; Path=/; Max-Age=${60 * 60 * 24 * 7}; SameSite=Lax`;
 }

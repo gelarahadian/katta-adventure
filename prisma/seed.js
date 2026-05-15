@@ -1,6 +1,35 @@
-const { PrismaClient, ProductStatus } = require("@prisma/client");
+const { PrismaClient, ProductStatus, UserRole, UserStatus } = require("@prisma/client");
+const { randomBytes, scrypt: scryptCallback } = require("node:crypto");
+const { promisify } = require("node:util");
 
 const prisma = new PrismaClient();
+const scrypt = promisify(scryptCallback);
+const KEY_LENGTH = 64;
+
+async function hashPassword(password) {
+  const salt = randomBytes(16).toString("hex");
+  const derivedKey = await scrypt(password, salt, KEY_LENGTH);
+  return `${salt}:${Buffer.from(derivedKey).toString("hex")}`;
+}
+
+const seededUsers = [
+  {
+    name: "Katta Admin",
+    email: "admin@katta.local",
+    phone: "081234567890",
+    password: "Admin12345!",
+    role: UserRole.ADMIN,
+    status: UserStatus.ACTIVE
+  },
+  {
+    name: "Katta Customer",
+    email: "customer@katta.local",
+    phone: "081234567891",
+    password: "Customer12345!",
+    role: UserRole.CUSTOMER,
+    status: UserStatus.ACTIVE
+  }
+];
 
 const categories = [
   {
@@ -114,6 +143,29 @@ const products = [
 ];
 
 async function main() {
+  for (const user of seededUsers) {
+    const passwordHash = await hashPassword(user.password);
+
+    await prisma.user.upsert({
+      where: { email: user.email },
+      update: {
+        name: user.name,
+        phone: user.phone,
+        role: user.role,
+        status: user.status,
+        passwordHash
+      },
+      create: {
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        status: user.status,
+        passwordHash
+      }
+    });
+  }
+
   for (const category of categories) {
     await prisma.category.upsert({
       where: { slug: category.slug },
@@ -175,7 +227,10 @@ async function main() {
     });
   }
 
-  console.log(`Seeded ${categories.length} categories and ${products.length} products`);
+  console.log(`Seeded ${seededUsers.length} users, ${categories.length} categories, and ${products.length} products`);
+  console.log("Seed login accounts:");
+  console.log("- admin@katta.local / Admin12345!");
+  console.log("- customer@katta.local / Customer12345!");
 }
 
 main()

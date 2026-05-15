@@ -13,6 +13,7 @@ export function AuthActions() {
   const [mounted, setMounted] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [displayName, setDisplayName] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => {
@@ -21,6 +22,7 @@ export function AuthActions() {
     setIsAuthenticated(session);
     const user = getAuthUser();
     setDisplayName(user?.name ?? null);
+    setIsAdmin(user?.role === "admin");
   }, []);
 
   async function onLogout() {
@@ -33,6 +35,7 @@ export function AuthActions() {
       clearAuthSession();
       setIsAuthenticated(false);
       setDisplayName(null);
+      setIsAdmin(false);
       setIsLoggingOut(false);
       router.push("/login");
       router.refresh();
@@ -54,6 +57,9 @@ export function AuthActions() {
   return (
     <div className="hidden items-center gap-2 sm:flex">
       {displayName ? <span className="text-xs text-muted-foreground">Hi, {displayName.split(" ")[0]}</span> : null}
+      <Button asChild type="button" variant="outline">
+        <Link href={isAdmin ? "/admin" : "/profile"}>{isAdmin ? "Admin Panel" : "Profile"}</Link>
+      </Button>
       <Button type="button" variant="secondary" onClick={onLogout} disabled={isLoggingOut}>
         {isLoggingOut ? "Logging out..." : "Logout"}
       </Button>

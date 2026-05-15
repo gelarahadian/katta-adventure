@@ -1,7 +1,11 @@
+"use client";
+
 import Link from "next/link";
 import { Menu, Search } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 
 import { AuthActions } from "@/components/auth/auth-actions";
+import { getAuthUser, hasAuthSession } from "@/lib/auth-session";
 import { cn } from "@/lib/utils";
 import { CartIconButton } from "@/components/cart/cart-icon-button";
 import { Button } from "@/components/ui/button";
@@ -11,7 +15,7 @@ const navItems = [
   { href: "/products", label: "Products" },
   { href: "/profile", label: "Profile" },
   { href: "/orders", label: "Orders" },
-  { href: "/admin", label: "Admin" },
+  { href: "/admin", label: "Admin", adminOnly: true },
   { href: "#collections", label: "Collections" },
   { href: "#support", label: "Support" }
 ];
@@ -21,6 +25,34 @@ interface SiteHeaderProps {
 }
 
 export function SiteHeader({ currentPath }: SiteHeaderProps) {
+  const [mounted, setMounted] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    const session = hasAuthSession();
+    if (!session) {
+      setIsAdmin(false);
+      return;
+    }
+
+    const user = getAuthUser();
+    setIsAdmin(user?.role === "admin");
+  }, []);
+
+  const visibleNavItems = useMemo(() => {
+    if (!mounted) {
+      return navItems.filter((item) => !("adminOnly" in item));
+    }
+
+    return navItems.filter((item) => {
+      if ("adminOnly" in item && item.adminOnly) {
+        return isAdmin;
+      }
+      return true;
+    });
+  }, [isAdmin, mounted]);
+
   return (
     <header className="sticky top-0 z-30 border-b border-border/70 bg-background/85 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
@@ -35,7 +67,7 @@ export function SiteHeader({ currentPath }: SiteHeaderProps) {
         </Link>
 
         <nav className="hidden items-center gap-7 text-sm font-medium md:flex">
-          {navItems.map((item) => (
+          {visibleNavItems.map((item) => (
             <Link
               key={item.href}
               href={item.href}
