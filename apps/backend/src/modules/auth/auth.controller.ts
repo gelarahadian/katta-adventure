@@ -5,9 +5,11 @@ import { authCookieOptions, refreshCookieName } from "./auth.constants.js";
 import {
   forgotPasswordSchema,
   loginSchema,
+  profileParamsSchema,
   resetPasswordSchema,
   refreshSessionSchema,
-  registerSchema
+  registerSchema,
+  updateProfileSchema
 } from "./auth.schemas.js";
 
 function getRefreshToken(request: Request) {
@@ -104,5 +106,22 @@ export async function logout(request: Request, response: Response) {
   const result = await authService.logout(getRefreshToken(request));
 
   clearRefreshCookie(response);
+  response.status(200).json(result);
+}
+
+export async function getProfile(request: Request, response: Response) {
+  const params = profileParamsSchema.parse(request.params);
+  const result = await authService.getProfile(params);
+
+  response.status(200).json({
+    user: result
+  });
+}
+
+export async function updateProfile(request: Request, response: Response) {
+  const params = profileParamsSchema.parse(request.params);
+  const input = updateProfileSchema.parse(request.body);
+  const result = await authService.updateProfile(params, input);
+
   response.status(200).json(result);
 }

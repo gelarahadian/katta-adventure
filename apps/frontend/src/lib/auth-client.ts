@@ -4,7 +4,8 @@ import type {
   ForgotPasswordPayload,
   ForgotPasswordResponse,
   LoginPayload,
-  RegisterPayload
+  RegisterPayload,
+  UserProfile
 } from "@/types/auth";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
@@ -78,4 +79,47 @@ export async function logoutRequest() {
   }
 
   return (await response.json()) as { message: string };
+}
+
+export async function getProfileRequest(userId: string) {
+  const response = await fetch(`${getApiBaseUrl()}/api/v1/auth/profile/${encodeURIComponent(userId)}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    credentials: "include"
+  });
+
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+
+  return (await response.json()) as { user: UserProfile };
+}
+
+export async function updateProfileRequest(
+  userId: string,
+  payload: {
+    name: string;
+    email?: string;
+    phone?: string;
+  }
+) {
+  const response = await fetch(`${getApiBaseUrl()}/api/v1/auth/profile/${encodeURIComponent(userId)}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    credentials: "include",
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+
+  return (await response.json()) as {
+    message: string;
+    user: UserProfile;
+  };
 }

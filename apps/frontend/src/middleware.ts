@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const protectedPrefixes = ["/cart", "/checkout", "/orders"];
+const protectedPrefixes = ["/cart", "/checkout", "/orders", "/profile"];
 const authPages = ["/login", "/register", "/forgot-password"];
 
 function isProtectedPath(pathname: string) {
@@ -30,5 +30,13 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/cart/:path*", "/checkout/:path*", "/orders/:path*", "/login", "/register", "/forgot-password"]
+  matcher: [
+    "/cart/:path*",
+    "/checkout/:path*",
+    "/orders/:path*",
+    "/profile/:path*",
+    "/login",
+    "/register",
+    "/forgot-password"
+  ]
 };

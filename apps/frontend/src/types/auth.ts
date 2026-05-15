@@ -3,7 +3,7 @@ export interface AuthUser {
   name: string;
   email: string;
   role: "customer" | "admin";
-  status: "active" | "inactive" | "suspended";
+  status: "ACTIVE" | "PENDING" | "SUSPENDED";
 }
 
 export interface AuthSuccessResponse {
@@ -38,4 +38,16 @@ export interface ForgotPasswordPayload {
 
 export interface ForgotPasswordResponse {
   message: string;
+}
+
+export interface UserProfile {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  role: "CUSTOMER" | "ADMIN";
+  status: "ACTIVE" | "PENDING" | "SUSPENDED";
+  createdAt?: string;
+  updatedAt?: string;
+  lastLoginAt?: string | null;
 }

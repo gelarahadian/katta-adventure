@@ -15,9 +15,11 @@ import {
 import type {
   ForgotPasswordInput,
   LoginInput,
+  ProfileParamsInput,
   RefreshSessionInput,
   RegisterInput,
-  ResetPasswordInput
+  ResetPasswordInput,
+  UpdateProfileInput
 } from "./auth.schemas.js";
 import type { AuthResult, AuthUserPayload } from "./auth.types.js";
 
@@ -301,6 +303,87 @@ export class AuthService {
 
     return {
       message: "Logged out."
+    };
+  }
+
+  async getProfile(params: ProfileParamsInput) {
+    const user = await prisma.user.findUnique({
+      where: {
+        id: params.userId
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        role: true,
+        status: true,
+        createdAt: true,
+        updatedAt: true,
+        lastLoginAt: true
+      }
+    });
+
+    if (!user) {
+      throw new AppError("User not found", 404);
+    }
+
+    return user;
+  }
+
+  async updateProfile(params: ProfileParamsInput, input: UpdateProfileInput) {
+    const existingUser = await prisma.user.findUnique({
+      where: {
+        id: params.userId
+      },
+      select: {
+        id: true,
+        email: true
+      }
+    });
+
+    if (!existingUser) {
+      throw new AppError("User not found", 404);
+    }
+
+    if (input.email && input.email !== existingUser.email) {
+      const emailOwner = await prisma.user.findUnique({
+        where: {
+          email: input.email
+        },
+        select: {
+          id: true
+        }
+      });
+
+      if (emailOwner && emailOwner.id !== params.userId) {
+        throw new AppError("Email is already used by another account", 409);
+      }
+    }
+
+    const updated = await prisma.user.update({
+      where: {
+        id: params.userId
+      },
+      data: {
+        name: input.name,
+        phone: input.phone,
+        email: input.email
+      },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        role: true,
+        status: true,
+        updatedAt: true
+      }
+    });
+
+    return {
+      message: "Profile updated",
+      user: updated
     };
   }
 }
