@@ -11,6 +11,7 @@ const navItems = [
   { href: "/products", label: "Products" },
   { href: "/profile", label: "Profile" },
   { href: "/orders", label: "Orders" },
+  { href: "/admin", label: "Admin" },
   { href: "#collections", label: "Collections" },
   { href: "#support", label: "Support" }
 ];

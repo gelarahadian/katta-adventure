@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const protectedPrefixes = ["/cart", "/checkout", "/orders", "/profile"];
+const protectedPrefixes = ["/cart", "/checkout", "/orders", "/profile", "/admin"];
 const authPages = ["/login", "/register", "/forgot-password"];
 
 function isProtectedPath(pathname: string) {
@@ -35,6 +35,7 @@ export const config = {
     "/checkout/:path*",
     "/orders/:path*",
     "/profile/:path*",
+    "/admin/:path*",
     "/login",
     "/register",
     "/forgot-password"
