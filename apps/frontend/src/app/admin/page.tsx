@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 
 import { formatPrice } from "@/data/products";
 import { getAdminOverview } from "@/lib/admin-client";
+import { ProductManagement } from "@/components/admin/product-management";
 import { SectionHeading } from "@/components/storefront/section-heading";
 import { SiteHeader } from "@/components/storefront/site-header";
+import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
   title: "Admin Dashboard | Katta Adventure",
@@ -34,6 +37,18 @@ export default async function AdminPage() {
           <StatCard label="Total Revenue" value={formatPrice(Number(overview.stats.totalRevenue))} />
         </div>
 
+        <div className="mt-6 flex flex-wrap gap-3">
+          <Button asChild variant="outline">
+            <Link href="/admin/orders">Order management</Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href="/admin/customers">Customer management</Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href="/admin/reports">Sales reports</Link>
+          </Button>
+        </div>
+
         <div className="mt-8 rounded-lg border border-border/70 bg-white/80 p-5">
           <p className="text-sm font-semibold uppercase tracking-[0.16em] text-primary">Recent orders</p>
           <div className="mt-4 space-y-3">
@@ -56,6 +71,10 @@ export default async function AdminPage() {
               ))
             )}
           </div>
+        </div>
+
+        <div className="mt-8">
+          <ProductManagement />
         </div>
       </section>
     </main>

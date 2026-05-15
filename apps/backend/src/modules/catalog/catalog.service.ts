@@ -4,9 +4,15 @@ import { AppError } from "../../lib/app-error.js";
 import { prisma } from "../../lib/prisma.js";
 
 import type {
+  CategoryParams,
+  CreateCategoryInput,
+  CreateProductInput,
   GetProductBySlugParams,
   ListCategoriesQuery,
-  ListProductsQuery
+  ListProductsQuery,
+  ProductParams,
+  UpdateCategoryInput,
+  UpdateProductInput
 } from "./catalog.schemas.js";
 
 function serializeDecimal(value: Prisma.Decimal | null) {
@@ -194,6 +200,165 @@ export class CatalogService {
     }
 
     return serializeProduct(product);
+  }
+
+  async createCategory(input: CreateCategoryInput) {
+    const category = await prisma.category.create({
+      data: {
+        name: input.name,
+        slug: input.slug,
+        description: input.description,
+        imageUrl: input.imageUrl,
+        isActive: input.isActive
+      },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        description: true,
+        imageUrl: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true
+      }
+    });
+
+    return category;
+  }
+
+  async updateCategory(params: CategoryParams, input: UpdateCategoryInput) {
+    const existing = await prisma.category.findUnique({
+      where: { id: params.categoryId },
+      select: { id: true }
+    });
+
+    if (!existing) {
+      throw new AppError("Category not found", 404);
+    }
+
+    return prisma.category.update({
+      where: {
+        id: params.categoryId
+      },
+      data: input,
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        description: true,
+        imageUrl: true,
+        isActive: true,
+        updatedAt: true
+      }
+    });
+  }
+
+  async deleteCategory(params: CategoryParams) {
+    const existing = await prisma.category.findUnique({
+      where: { id: params.categoryId },
+      include: { _count: { select: { products: true } } }
+    });
+
+    if (!existing) {
+      throw new AppError("Category not found", 404);
+    }
+
+    if (existing._count.products > 0) {
+      throw new AppError("Cannot delete category with products", 422);
+    }
+
+    await prisma.category.delete({
+      where: {
+        id: params.categoryId
+      }
+    });
+
+    return { message: "Category deleted" };
+  }
+
+  async createProduct(input: CreateProductInput) {
+    const category = await prisma.category.findUnique({
+      where: { id: input.categoryId },
+      select: { id: true }
+    });
+
+    if (!category) {
+      throw new AppError("Category not found", 404);
+    }
+
+    const product = await prisma.product.create({
+      data: {
+        name: input.name,
+        slug: input.slug,
+        sku: input.sku,
+        shortDescription: input.shortDescription,
+        description: input.description,
+        imageUrl: input.imageUrl,
+        status: input.status,
+        price: input.price,
+        compareAtPrice: input.compareAtPrice,
+        stock: input.stock,
+        weightGrams: input.weightGrams,
+        isFeatured: input.isFeatured,
+        categoryId: input.categoryId
+      },
+      select: productSelect()
+    });
+
+    return serializeProduct(product);
+  }
+
+  async updateProduct(params: ProductParams, input: UpdateProductInput) {
+    const existing = await prisma.product.findUnique({
+      where: { id: params.productId },
+      select: { id: true }
+    });
+
+    if (!existing) {
+      throw new AppError("Product not found", 404);
+    }
+
+    if (input.categoryId) {
+      const category = await prisma.category.findUnique({
+        where: { id: input.categoryId },
+        select: { id: true }
+      });
+
+      if (!category) {
+        throw new AppError("Category not found", 404);
+      }
+    }
+
+    const product = await prisma.product.update({
+      where: {
+        id: params.productId
+      },
+      data: input,
+      select: productSelect()
+    });
+
+    return serializeProduct(product);
+  }
+
+  async deleteProduct(params: ProductParams) {
+    const existing = await prisma.product.findUnique({
+      where: { id: params.productId },
+      select: { id: true }
+    });
+
+    if (!existing) {
+      throw new AppError("Product not found", 404);
+    }
+
+    await prisma.product.delete({
+      where: {
+        id: params.productId
+      }
+    });
+
+    return {
+      message: "Product deleted"
+    };
   }
 }
 
