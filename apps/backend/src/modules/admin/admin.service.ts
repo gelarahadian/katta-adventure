@@ -146,6 +146,39 @@ export class AdminService {
       }
     };
   }
+
+  async listCustomers() {
+    const customers = await prisma.user.findMany({
+      where: {
+        role: UserRole.CUSTOMER
+      },
+      orderBy: {
+        createdAt: "desc"
+      },
+      include: {
+        _count: {
+          select: {
+            orders: true,
+            payments: true
+          }
+        }
+      }
+    });
+
+    return {
+      items: customers.map((customer) => ({
+        id: customer.id,
+        name: customer.name,
+        email: customer.email,
+        phone: customer.phone,
+        status: customer.status,
+        createdAt: customer.createdAt.toISOString(),
+        lastLoginAt: customer.lastLoginAt?.toISOString() ?? null,
+        totalOrders: customer._count.orders,
+        totalPayments: customer._count.payments
+      }))
+    };
+  }
 }
 
 export const adminService = new AdminService();

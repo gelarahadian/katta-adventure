@@ -108,3 +108,29 @@ export async function updateAdminOrderStatus(orderId: string, status: string) {
     };
   };
 }
+
+export interface AdminCustomerListResponse {
+  items: Array<{
+    id: string;
+    name: string;
+    email: string;
+    phone: string | null;
+    status: string;
+    createdAt: string;
+    lastLoginAt: string | null;
+    totalOrders: number;
+    totalPayments: number;
+  }>;
+}
+
+export async function listAdminCustomers() {
+  const response = await fetch(`${getApiBaseUrl()}/api/v1/admin/customers`, {
+    cache: "no-store"
+  });
+
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+
+  return (await response.json()) as AdminCustomerListResponse;
+}
