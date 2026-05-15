@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { formatPrice } from "@/data/products";
 import { createOrder } from "@/lib/checkout-client";
+import { authGet, authPost } from "@/lib/auth-client";
 import type { CartResponse } from "@/types/cart";
 import { Button } from "@/components/ui/button";
 
@@ -17,6 +18,8 @@ const flatShipping = 20000;
 export function CheckoutForm({ cart }: CheckoutFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderNumber, setOrderNumber] = useState<string | null>(null);
+  const [addresses, setAddresses] = useState<Array<{ id: string; recipientName: string; line1: string; city: string; isDefault: boolean }>>([]);
+  const [selectedAddressId, setSelectedAddressId] = useState<string>("");
   const [form, setForm] = useState({
     recipientName: "",
     phone: "",
@@ -27,12 +30,34 @@ export function CheckoutForm({ cart }: CheckoutFormProps) {
     line1: "",
     line2: "",
     notes: "",
-    customerNote: "",
-    paymentProvider: "MANUAL" as "MIDTRANS" | "XENDIT" | "MANUAL"
+    customerNote: ""
   });
 
   const subtotal = Number(cart.summary.subtotal);
   const grandTotal = useMemo(() => subtotal + flatShipping, [subtotal]);
+
+  useEffect(() => {
+    void (async () => {
+      try {
+        const response = await authGet<{
+          items: Array<{
+            id: string;
+            recipientName: string;
+            line1: string;
+            city: string;
+            isDefault: boolean;
+          }>;
+        }>("/api/v1/orders/addresses?includeInactive=true");
+        setAddresses(response.items);
+        const defaultAddress = response.items.find((item) => item.isDefault) ?? response.items[0];
+        if (defaultAddress) {
+          setSelectedAddressId(defaultAddress.id);
+        }
+      } catch {
+        // Ignore initial address fetch errors.
+      }
+    })();
+  }, []);
 
   function updateField(name: keyof typeof form, value: string) {
     setForm((prev) => ({ ...prev, [name]: value }));
@@ -43,17 +68,22 @@ export function CheckoutForm({ cart }: CheckoutFormProps) {
     setIsSubmitting(true);
     try {
       const result = await createOrder({
-        recipientName: form.recipientName,
-        phone: form.phone,
-        province: form.province,
-        city: form.city,
-        district: form.district,
-        postalCode: form.postalCode,
-        line1: form.line1,
-        line2: form.line2 || undefined,
-        notes: form.notes || undefined,
+        addressId: selectedAddressId || undefined,
+        address: selectedAddressId
+          ? undefined
+          : {
+              recipientName: form.recipientName,
+              phone: form.phone,
+              province: form.province,
+              city: form.city,
+              district: form.district,
+              postalCode: form.postalCode,
+              line1: form.line1,
+              line2: form.line2 || undefined,
+              notes: form.notes || undefined
+            },
         customerNote: form.customerNote || undefined,
-        paymentProvider: form.paymentProvider
+        paymentProvider: "MIDTRANS"
       });
       setOrderNumber(result.order.orderNumber);
       window.dispatchEvent(new Event("cart:updated"));
@@ -72,6 +102,22 @@ export function CheckoutForm({ cart }: CheckoutFormProps) {
   return (
     <form className="grid gap-6 lg:grid-cols-[1fr_360px]" onSubmit={onSubmit}>
       <div className="space-y-6 rounded-lg border border-border/70 bg-white/75 p-5">
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Alamat tersimpan</label>
+          <select
+            value={selectedAddressId}
+            onChange={(event) => setSelectedAddressId(event.target.value)}
+            className="h-11 w-full rounded-md border border-border bg-white px-3 text-sm"
+          >
+            <option value="">Gunakan alamat baru</option>
+            {addresses.map((address) => (
+              <option key={address.id} value={address.id}>
+                {address.recipientName} - {address.line1}, {address.city}
+              </option>
+            ))}
+          </select>
+        </div>
+
         <div className="grid gap-4 sm:grid-cols-2">
           <Input label="Nama penerima" value={form.recipientName} onChange={(v) => updateField("recipientName", v)} />
           <Input label="Nomor HP" value={form.phone} onChange={(v) => updateField("phone", v)} />
@@ -83,6 +129,36 @@ export function CheckoutForm({ cart }: CheckoutFormProps) {
 
         <Input label="Alamat utama" value={form.line1} onChange={(v) => updateField("line1", v)} />
         <Input label="Alamat tambahan (opsional)" value={form.line2} onChange={(v) => updateField("line2", v)} />
+
+        <Button
+          type="button"
+          variant="outline"
+          onClick={async () => {
+            try {
+              const result = await authPost<{ message: string; item: { id: string; recipientName: string; line1: string; city: string; isDefault: boolean } }>(
+                "/api/v1/orders/addresses",
+                {
+                  recipientName: form.recipientName,
+                  phone: form.phone,
+                  province: form.province,
+                  city: form.city,
+                  district: form.district,
+                  postalCode: form.postalCode,
+                  line1: form.line1,
+                  line2: form.line2 || undefined,
+                  notes: form.notes || undefined
+                }
+              );
+              setAddresses((prev) => [result.item, ...prev]);
+              setSelectedAddressId(result.item.id);
+              toast.success("Alamat disimpan");
+            } catch (error) {
+              toast.error(error instanceof Error ? error.message : "Gagal menyimpan alamat");
+            }
+          }}
+        >
+          Simpan alamat ini
+        </Button>
 
         <div className="space-y-2">
           <label className="text-sm font-medium">Catatan pengiriman</label>
@@ -102,17 +178,8 @@ export function CheckoutForm({ cart }: CheckoutFormProps) {
           />
         </div>
 
-        <div className="space-y-2">
-          <label className="text-sm font-medium">Metode pembayaran</label>
-          <select
-            value={form.paymentProvider}
-            onChange={(event) => updateField("paymentProvider", event.target.value)}
-            className="h-11 w-full rounded-md border border-border bg-white px-3 text-sm"
-          >
-            <option value="MANUAL">Manual transfer</option>
-            <option value="MIDTRANS">Midtrans</option>
-            <option value="XENDIT">Xendit</option>
-          </select>
+        <div className="rounded-md border border-border/70 bg-white/70 p-4 text-sm text-muted-foreground">
+          Metode pembayaran: <span className="font-medium text-foreground">Midtrans</span>
         </div>
       </div>
 

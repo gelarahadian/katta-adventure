@@ -3,7 +3,9 @@ import type { Request, Response } from "express";
 import { env } from "../../config/env.js";
 import { orderService } from "./order.service.js";
 import {
+  createAddressSchema,
   createOrderSchema,
+  listAddressesQuerySchema,
   midtransWebhookSchema,
   orderStatusParamsSchema
 } from "./order.schemas.js";
@@ -18,20 +20,32 @@ export async function getOrderStatus(_request: Request, response: Response) {
 
 export async function getOrderPaymentStatus(request: Request, response: Response) {
   const params = orderStatusParamsSchema.parse(request.params);
-  const result = await orderService.getOrderPaymentStatus(params.orderNumber);
+  const result = await orderService.getOrderPaymentStatus(request.auth!.userId, params.orderNumber);
 
   response.status(200).json(result);
 }
 
-export async function listOrders(_request: Request, response: Response) {
-  const result = await orderService.listOrders();
+export async function listOrders(request: Request, response: Response) {
+  const result = await orderService.listOrders(request.auth!.userId);
   response.status(200).json(result);
 }
 
 export async function getOrderDetail(request: Request, response: Response) {
   const params = orderStatusParamsSchema.parse(request.params);
-  const result = await orderService.getOrderDetail(params.orderNumber);
+  const result = await orderService.getOrderDetail(request.auth!.userId, params.orderNumber);
   response.status(200).json(result);
+}
+
+export async function listAddresses(request: Request, response: Response) {
+  const query = listAddressesQuerySchema.parse(request.query);
+  const result = await orderService.listAddresses(request.auth!.userId, query);
+  response.status(200).json(result);
+}
+
+export async function createAddress(request: Request, response: Response) {
+  const input = createAddressSchema.parse(request.body);
+  const result = await orderService.createAddress(request.auth!.userId, input);
+  response.status(201).json(result);
 }
 
 export async function createOrder(request: Request, response: Response) {
@@ -46,7 +60,7 @@ export async function createOrder(request: Request, response: Response) {
   }
 
   const input = createOrderSchema.parse(request.body);
-  const result = await orderService.createOrder(input);
+  const result = await orderService.createOrder(request.auth!.userId, input);
 
   response.status(201).json(result);
 }

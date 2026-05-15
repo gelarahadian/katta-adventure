@@ -17,12 +17,20 @@ export function AuthActions() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
-    const session = hasAuthSession();
-    setIsAuthenticated(session);
-    const user = getAuthUser();
-    setDisplayName(user?.name ?? null);
-    setIsAdmin(user?.role === "admin");
+    const sync = () => {
+      setMounted(true);
+      const session = hasAuthSession();
+      setIsAuthenticated(session);
+      const user = getAuthUser();
+      setDisplayName(user?.name ?? null);
+      setIsAdmin(user?.role === "admin");
+    };
+
+    sync();
+    window.addEventListener("auth:changed", sync as EventListener);
+    return () => {
+      window.removeEventListener("auth:changed", sync as EventListener);
+    };
   }, []);
 
   async function onLogout() {
@@ -57,12 +65,32 @@ export function AuthActions() {
   return (
     <div className="hidden items-center gap-2 sm:flex">
       {displayName ? <span className="text-xs text-muted-foreground">Hi, {displayName.split(" ")[0]}</span> : null}
-      <Button asChild type="button" variant="outline">
-        <Link href={isAdmin ? "/admin" : "/profile"}>{isAdmin ? "Admin Panel" : "Profile"}</Link>
-      </Button>
-      <Button type="button" variant="secondary" onClick={onLogout} disabled={isLoggingOut}>
-        {isLoggingOut ? "Logging out..." : "Logout"}
-      </Button>
+      <details className="relative">
+        <summary className="list-none cursor-pointer rounded-md border border-border bg-white px-3 py-2 text-sm">
+          Akun
+        </summary>
+        <div className="absolute right-0 z-40 mt-2 w-44 rounded-md border border-border/70 bg-white p-2 shadow-lg">
+          <Link href="/orders" className="block rounded px-2 py-2 text-sm hover:bg-muted">
+            Pesanan Saya
+          </Link>
+          <Link href="/profile" className="block rounded px-2 py-2 text-sm hover:bg-muted">
+            Profil
+          </Link>
+          {isAdmin ? (
+            <Link href="/admin" className="block rounded px-2 py-2 text-sm hover:bg-muted">
+              Admin
+            </Link>
+          ) : null}
+          <button
+            type="button"
+            className="mt-1 w-full rounded px-2 py-2 text-left text-sm hover:bg-muted"
+            onClick={onLogout}
+            disabled={isLoggingOut}
+          >
+            {isLoggingOut ? "Keluar..." : "Logout"}
+          </button>
+        </div>
+      </details>
     </div>
   );
 }

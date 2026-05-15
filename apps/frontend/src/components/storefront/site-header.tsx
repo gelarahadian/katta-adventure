@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Menu, Search } from "lucide-react";
+import { Menu } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { AuthActions } from "@/components/auth/auth-actions";
@@ -11,13 +11,11 @@ import { CartIconButton } from "@/components/cart/cart-icon-button";
 import { Button } from "@/components/ui/button";
 
 const navItems = [
-  { href: "/", label: "Home" },
-  { href: "/products", label: "Products" },
-  { href: "/profile", label: "Profile" },
-  { href: "/orders", label: "Orders" },
+  { href: "/", label: "Beranda" },
+  { href: "/products", label: "Produk" },
   { href: "/admin", label: "Admin", adminOnly: true },
-  { href: "#collections", label: "Collections" },
-  { href: "#support", label: "Support" }
+  { href: "#collections", label: "Koleksi" },
+  { href: "#support", label: "Bantuan" }
 ];
 
 interface SiteHeaderProps {
@@ -83,9 +81,6 @@ export function SiteHeader({ currentPath }: SiteHeaderProps) {
 
         <div className="flex items-center gap-2">
           <AuthActions />
-          <Button size="icon" variant="outline" aria-label="Search">
-            <Search className="h-4 w-4" />
-          </Button>
           <CartIconButton />
           <Button size="icon" variant="outline" className="md:hidden" aria-label="Menu">
             <Menu className="h-4 w-4" />

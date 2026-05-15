@@ -6,7 +6,6 @@ import {
   PaymentStatus,
   Prisma,
   ProductStatus,
-  UserStatus,
 } from "@prisma/client";
 import { createHash } from "node:crypto";
 
@@ -16,25 +15,9 @@ import { env } from "../../config/env.js";
 import { createMidtransSnapTransaction } from "./midtrans.service.js";
 
 import type { CreateOrderInput, MidtransWebhookInput } from "./order.schemas.js";
+import type { CreateAddressInput, ListAddressesQueryInput } from "./order.schemas.js";
 
-const guestUserEmail = "guest@katta.local";
 const shippingAmount = 20000;
-
-async function getOrCreateGuestUserId() {
-  const user = await prisma.user.upsert({
-    where: { email: guestUserEmail },
-    update: {},
-    create: {
-      name: "Guest Shopper",
-      email: guestUserEmail,
-      passwordHash: "guest-no-login",
-      status: UserStatus.ACTIVE
-    },
-    select: { id: true }
-  });
-
-  return user.id;
-}
 
 async function getActiveCartWithItems(userId: string) {
   const cart = await prisma.cart.findFirst({
@@ -145,9 +128,100 @@ function mapOrderAndPaymentToResultState(orderStatus: OrderStatus, paymentStatus
 }
 
 export class OrderService {
-  async createOrder(input: CreateOrderInput) {
-    const userId = await getOrCreateGuestUserId();
+  async listAddresses(userId: string, query: ListAddressesQueryInput) {
+    const addresses = await prisma.address.findMany({
+      where: {
+        userId,
+        ...(query.includeInactive ? {} : { isDefault: true })
+      },
+      orderBy: [{ isDefault: "desc" }, { updatedAt: "desc" }],
+      select: {
+        id: true,
+        label: true,
+        recipientName: true,
+        phone: true,
+        province: true,
+        city: true,
+        district: true,
+        postalCode: true,
+        line1: true,
+        line2: true,
+        notes: true,
+        isDefault: true,
+        updatedAt: true
+      }
+    });
+
+    return {
+      items: addresses.map((address) => ({ ...address, updatedAt: address.updatedAt.toISOString() }))
+    };
+  }
+
+  async createAddress(userId: string, input: CreateAddressInput) {
+    const hasAnyAddress =
+      (await prisma.address.count({
+        where: { userId }
+      })) > 0;
+
+    if (!hasAnyAddress) {
+      await prisma.address.updateMany({
+        where: { userId },
+        data: { isDefault: false }
+      });
+    }
+
+    const address = await prisma.address.create({
+      data: {
+        userId,
+        label: "Saved Address",
+        recipientName: input.recipientName,
+        phone: input.phone,
+        country: "Indonesia",
+        province: input.province,
+        city: input.city,
+        district: input.district,
+        postalCode: input.postalCode,
+        line1: input.line1,
+        line2: input.line2,
+        notes: input.notes,
+        isDefault: !hasAnyAddress
+      },
+      select: {
+        id: true,
+        recipientName: true,
+        phone: true,
+        province: true,
+        city: true,
+        district: true,
+        postalCode: true,
+        line1: true,
+        line2: true,
+        notes: true,
+        isDefault: true,
+        updatedAt: true
+      }
+    });
+
+    return {
+      message: "Address saved",
+      item: {
+        ...address,
+        updatedAt: address.updatedAt.toISOString()
+      }
+    };
+  }
+
+  async createOrder(userId: string, input: CreateOrderInput) {
     const cart = await getActiveCartWithItems(userId);
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, email: true, name: true }
+    });
+
+    if (!user) {
+      throw new AppError("User not found", 404);
+    }
 
     for (const item of cart.items) {
       if (item.product.status !== ProductStatus.ACTIVE) {
@@ -161,31 +235,47 @@ export class OrderService {
     const subtotal = cart.items.reduce((sum, item) => sum + Number(item.unitPrice) * item.quantity, 0);
     const totalAmount = subtotal + shippingAmount;
 
+    const selectedAddress = input.addressId
+      ? await prisma.address.findFirst({
+          where: { id: input.addressId, userId },
+          select: { id: true, phone: true }
+        })
+      : null;
+
+    if (input.addressId && !selectedAddress) {
+      throw new AppError("Address not found", 404);
+    }
+
     const result = await prisma.$transaction(async (tx) => {
-      const address = await tx.address.create({
-        data: {
-          userId,
-          label: "Primary Shipping",
-          recipientName: input.recipientName,
-          phone: input.phone,
-          country: "Indonesia",
-          province: input.province,
-          city: input.city,
-          district: input.district,
-          postalCode: input.postalCode,
-          line1: input.line1,
-          line2: input.line2,
-          notes: input.notes,
-          isDefault: true
-        }
-      });
+      const addressId = selectedAddress
+        ? selectedAddress.id
+        : (
+            await tx.address.create({
+              data: {
+                userId,
+                label: "Saved Address",
+                recipientName: input.address!.recipientName,
+                phone: input.address!.phone,
+                country: "Indonesia",
+                province: input.address!.province,
+                city: input.address!.city,
+                district: input.address!.district,
+                postalCode: input.address!.postalCode,
+                line1: input.address!.line1,
+                line2: input.address!.line2,
+                notes: input.address!.notes,
+                isDefault: false
+              },
+              select: { id: true }
+            })
+          ).id;
 
       const order = await tx.order.create({
         data: {
           orderNumber: createOrderNumber(),
           userId,
           cartId: cart.id,
-          shippingAddressId: address.id,
+          shippingAddressId: addressId,
           status: OrderStatus.AWAITING_PAYMENT,
           subtotalAmount: toDecimal(subtotal),
           shippingAmount: toDecimal(shippingAmount),
@@ -258,9 +348,9 @@ export class OrderService {
         paymentId: payment.id,
         user: {
           id: userId,
-          name: input.recipientName,
-          email: guestUserEmail,
-          phone: input.phone
+          name: user.name,
+          email: user.email,
+          phone: selectedAddress?.phone ?? input.address?.phone ?? ""
         }
       };
     });
@@ -393,10 +483,11 @@ export class OrderService {
     };
   }
 
-  async getOrderPaymentStatus(orderNumber: string) {
-    const order = await prisma.order.findUnique({
+  async getOrderPaymentStatus(userId: string, orderNumber: string) {
+    const order = await prisma.order.findFirst({
       where: {
-        orderNumber
+        orderNumber,
+        userId
       },
       include: {
         payments: {
@@ -427,9 +518,7 @@ export class OrderService {
     };
   }
 
-  async listOrders() {
-    const userId = await getOrCreateGuestUserId();
-
+  async listOrders(userId: string) {
     const orders = await prisma.order.findMany({
       where: {
         userId
@@ -466,9 +555,7 @@ export class OrderService {
     };
   }
 
-  async getOrderDetail(orderNumber: string) {
-    const userId = await getOrCreateGuestUserId();
-
+  async getOrderDetail(userId: string, orderNumber: string) {
     const order = await prisma.order.findFirst({
       where: {
         orderNumber,

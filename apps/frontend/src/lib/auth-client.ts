@@ -64,6 +64,77 @@ export function forgotPasswordRequest(payload: ForgotPasswordPayload) {
   return request<ForgotPasswordResponse>("/api/v1/auth/forgot-password", payload);
 }
 
+export function authGet<TResponse>(path: string) {
+  const token = localStorage.getItem("ka_access_token");
+  return fetch(`${getApiBaseUrl()}${path}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {})
+    },
+    credentials: "include",
+    cache: "no-store"
+  }).then(async (response) => {
+    if (!response.ok) {
+      throw await parseError(response);
+    }
+    return (await response.json()) as TResponse;
+  });
+}
+
+export function authPost<TResponse>(path: string, payload: unknown) {
+  const token = localStorage.getItem("ka_access_token");
+  return fetch(`${getApiBaseUrl()}${path}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {})
+    },
+    credentials: "include",
+    body: JSON.stringify(payload)
+  }).then(async (response) => {
+    if (!response.ok) {
+      throw await parseError(response);
+    }
+    return (await response.json()) as TResponse;
+  });
+}
+
+export function authPatch<TResponse>(path: string, payload: unknown) {
+  const token = localStorage.getItem("ka_access_token");
+  return fetch(`${getApiBaseUrl()}${path}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {})
+    },
+    credentials: "include",
+    body: JSON.stringify(payload)
+  }).then(async (response) => {
+    if (!response.ok) {
+      throw await parseError(response);
+    }
+    return (await response.json()) as TResponse;
+  });
+}
+
+export function authDelete<TResponse>(path: string) {
+  const token = localStorage.getItem("ka_access_token");
+  return fetch(`${getApiBaseUrl()}${path}`, {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {})
+    },
+    credentials: "include"
+  }).then(async (response) => {
+    if (!response.ok) {
+      throw await parseError(response);
+    }
+    return (await response.json()) as TResponse;
+  });
+}
+
 export async function logoutRequest() {
   const response = await fetch(`${getApiBaseUrl()}/api/v1/auth/logout`, {
     method: "POST",

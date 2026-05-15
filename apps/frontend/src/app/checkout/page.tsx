@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 
-import { CheckoutForm } from "@/components/checkout/checkout-form";
+import { CheckoutPageView } from "@/components/checkout/checkout-page-view";
 import { SectionHeading } from "@/components/storefront/section-heading";
 import { SiteHeader } from "@/components/storefront/site-header";
-import { getCart } from "@/lib/cart-client";
 
 export const metadata: Metadata = {
   title: "Checkout | Katta Adventure",
@@ -11,8 +10,6 @@ export const metadata: Metadata = {
 };
 
 export default async function CheckoutPage() {
-  const cart = await getCart();
-
   return (
     <main className="min-h-screen">
       <SiteHeader currentPath="/cart" />
@@ -25,7 +22,7 @@ export default async function CheckoutPage() {
         />
 
         <div className="mt-8">
-          <CheckoutForm cart={cart} />
+          <CheckoutPageView />
         </div>
       </section>
     </main>

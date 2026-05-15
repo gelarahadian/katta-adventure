@@ -1,54 +1,12 @@
 import type { CreateOrderPayload, CreateOrderResponse, OrderStatusResponse } from "@/types/checkout";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
-
-function getApiBaseUrl() {
-  if (!API_BASE_URL) {
-    throw new Error("NEXT_PUBLIC_API_URL is not configured");
-  }
-
-  return API_BASE_URL;
-}
-
-async function parseError(response: Response) {
-  try {
-    const payload = (await response.json()) as { message?: string };
-    return new Error(payload.message ?? `Request failed (${response.status})`);
-  } catch {
-    const text = await response.text().catch(() => "");
-    if (text) {
-      return new Error(text);
-    }
-    return new Error(`Request failed (${response.status})`);
-  }
-}
+import { authGet, authPost } from "@/lib/auth-client";
 
 export async function createOrder(payload: CreateOrderPayload) {
-  const response = await fetch(`${getApiBaseUrl()}/api/v1/orders`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(payload)
-  });
-
-  if (!response.ok) {
-    throw await parseError(response);
-  }
-
-  return (await response.json()) as CreateOrderResponse;
+  return authPost<CreateOrderResponse>("/api/v1/orders", payload);
 }
 
 export async function getOrderStatus(orderNumber: string) {
-  const response = await fetch(`${getApiBaseUrl()}/api/v1/orders/${encodeURIComponent(orderNumber)}/status`, {
-    cache: "no-store"
-  });
-
-  if (!response.ok) {
-    throw await parseError(response);
-  }
-
-  return (await response.json()) as OrderStatusResponse;
+  return authGet<OrderStatusResponse>(`/api/v1/orders/${encodeURIComponent(orderNumber)}/status`);
 }
 
 export interface OrderListItem {
@@ -95,25 +53,9 @@ export interface OrderDetail {
 }
 
 export async function listOrders() {
-  const response = await fetch(`${getApiBaseUrl()}/api/v1/orders`, {
-    cache: "no-store"
-  });
-
-  if (!response.ok) {
-    throw await parseError(response);
-  }
-
-  return (await response.json()) as { items: OrderListItem[] };
+  return authGet<{ items: OrderListItem[] }>("/api/v1/orders");
 }
 
 export async function getOrderDetail(orderNumber: string) {
-  const response = await fetch(`${getApiBaseUrl()}/api/v1/orders/${encodeURIComponent(orderNumber)}`, {
-    cache: "no-store"
-  });
-
-  if (!response.ok) {
-    throw await parseError(response);
-  }
-
-  return (await response.json()) as OrderDetail;
+  return authGet<OrderDetail>(`/api/v1/orders/${encodeURIComponent(orderNumber)}`);
 }

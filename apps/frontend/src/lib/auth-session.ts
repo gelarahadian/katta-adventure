@@ -16,6 +16,7 @@ export function setAuthSession(user: AuthUser, accessToken: string) {
   localStorage.setItem(userKey, JSON.stringify(user));
   document.cookie = `${sessionCookie}=1; Path=/; Max-Age=${60 * 60 * 24 * 7}; SameSite=Lax`;
   document.cookie = `${roleCookie}=${normalizeRole(user.role)}; Path=/; Max-Age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+  window.dispatchEvent(new Event("auth:changed"));
 }
 
 export function clearAuthSession() {
@@ -23,6 +24,7 @@ export function clearAuthSession() {
   localStorage.removeItem(userKey);
   document.cookie = `${sessionCookie}=; Path=/; Max-Age=0; SameSite=Lax`;
   document.cookie = `${roleCookie}=; Path=/; Max-Age=0; SameSite=Lax`;
+  window.dispatchEvent(new Event("auth:changed"));
 }
 
 export function hasAuthSession() {
@@ -47,4 +49,5 @@ export function getAuthUser() {
 export function updateStoredAuthUser(user: AuthUser) {
   localStorage.setItem(userKey, JSON.stringify(user));
   document.cookie = `${roleCookie}=${normalizeRole(user.role)}; Path=/; Max-Age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+  window.dispatchEvent(new Event("auth:changed"));
 }

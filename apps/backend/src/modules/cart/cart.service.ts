@@ -1,30 +1,11 @@
-import { CartStatus, ProductStatus, UserStatus } from "@prisma/client";
+import { CartStatus, ProductStatus } from "@prisma/client";
 
 import { AppError } from "../../lib/app-error.js";
 import { prisma } from "../../lib/prisma.js";
 
 import type { AddCartItemInput, UpdateCartItemInput } from "./cart.schemas.js";
 
-const guestUserEmail = "guest@katta.local";
-
-async function getOrCreateGuestUserId() {
-  const user = await prisma.user.upsert({
-    where: { email: guestUserEmail },
-    update: {},
-    create: {
-      name: "Guest Shopper",
-      email: guestUserEmail,
-      passwordHash: "guest-no-login",
-      status: UserStatus.ACTIVE
-    },
-    select: { id: true }
-  });
-
-  return user.id;
-}
-
-async function getOrCreateActiveCart() {
-  const userId = await getOrCreateGuestUserId();
+async function getOrCreateActiveCart(userId: string) {
 
   const existingCart = await prisma.cart.findFirst({
     where: {
@@ -109,13 +90,13 @@ async function getCartSummary(cartId: string) {
 }
 
 export class CartService {
-  async getActiveCart() {
-    const cartId = await getOrCreateActiveCart();
+  async getActiveCart(userId: string) {
+    const cartId = await getOrCreateActiveCart(userId);
     return getCartSummary(cartId);
   }
 
-  async addItem(input: AddCartItemInput) {
-    const cartId = await getOrCreateActiveCart();
+  async addItem(userId: string, input: AddCartItemInput) {
+    const cartId = await getOrCreateActiveCart(userId);
 
     const product = await prisma.product.findUnique({
       where: { id: input.productId },
@@ -155,8 +136,8 @@ export class CartService {
     return getCartSummary(cartId);
   }
 
-  async updateItem(itemId: string, input: UpdateCartItemInput) {
-    const cartId = await getOrCreateActiveCart();
+  async updateItem(userId: string, itemId: string, input: UpdateCartItemInput) {
+    const cartId = await getOrCreateActiveCart(userId);
     const item = await prisma.cartItem.findFirst({
       where: { id: itemId, cartId },
       include: {
@@ -193,8 +174,8 @@ export class CartService {
     return getCartSummary(cartId);
   }
 
-  async removeItem(itemId: string) {
-    const cartId = await getOrCreateActiveCart();
+  async removeItem(userId: string, itemId: string) {
+    const cartId = await getOrCreateActiveCart(userId);
     const item = await prisma.cartItem.findFirst({
       where: { id: itemId, cartId },
       select: { id: true }

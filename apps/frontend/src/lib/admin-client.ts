@@ -1,21 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
-
-function getApiBaseUrl() {
-  if (!API_BASE_URL) {
-    throw new Error("NEXT_PUBLIC_API_URL is not configured");
-  }
-
-  return API_BASE_URL;
-}
-
-async function parseError(response: Response) {
-  try {
-    const payload = (await response.json()) as { message?: string };
-    return new Error(payload.message ?? `Admin request failed (${response.status})`);
-  } catch {
-    return new Error(`Admin request failed (${response.status})`);
-  }
-}
+import { authGet, authPatch } from "@/lib/auth-client";
 
 export interface AdminOverviewResponse {
   stats: {
@@ -41,15 +24,7 @@ export interface AdminOverviewResponse {
 }
 
 export async function getAdminOverview() {
-  const response = await fetch(`${getApiBaseUrl()}/api/v1/admin/overview`, {
-    cache: "no-store"
-  });
-
-  if (!response.ok) {
-    throw await parseError(response);
-  }
-
-  return (await response.json()) as AdminOverviewResponse;
+  return authGet<AdminOverviewResponse>("/api/v1/admin/overview");
 }
 
 export interface AdminOrderListResponse {
@@ -74,31 +49,11 @@ export interface AdminOrderListResponse {
 }
 
 export async function listAdminOrders() {
-  const response = await fetch(`${getApiBaseUrl()}/api/v1/admin/orders`, {
-    cache: "no-store"
-  });
-
-  if (!response.ok) {
-    throw await parseError(response);
-  }
-
-  return (await response.json()) as AdminOrderListResponse;
+  return authGet<AdminOrderListResponse>("/api/v1/admin/orders");
 }
 
 export async function updateAdminOrderStatus(orderId: string, status: string) {
-  const response = await fetch(`${getApiBaseUrl()}/api/v1/admin/orders/${encodeURIComponent(orderId)}/status`, {
-    method: "PATCH",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({ status })
-  });
-
-  if (!response.ok) {
-    throw await parseError(response);
-  }
-
-  return (await response.json()) as {
+  return authPatch<{
     message: string;
     order: {
       id: string;
@@ -106,7 +61,7 @@ export async function updateAdminOrderStatus(orderId: string, status: string) {
       status: string;
       updatedAt: string;
     };
-  };
+  }>(`/api/v1/admin/orders/${encodeURIComponent(orderId)}/status`, { status });
 }
 
 export interface AdminCustomerListResponse {
@@ -124,15 +79,7 @@ export interface AdminCustomerListResponse {
 }
 
 export async function listAdminCustomers() {
-  const response = await fetch(`${getApiBaseUrl()}/api/v1/admin/customers`, {
-    cache: "no-store"
-  });
-
-  if (!response.ok) {
-    throw await parseError(response);
-  }
-
-  return (await response.json()) as AdminCustomerListResponse;
+  return authGet<AdminCustomerListResponse>("/api/v1/admin/customers");
 }
 
 export interface AdminSalesReportResponse {
@@ -145,13 +92,5 @@ export interface AdminSalesReportResponse {
 }
 
 export async function getAdminSalesReport(period: "daily" | "monthly") {
-  const response = await fetch(`${getApiBaseUrl()}/api/v1/admin/reports/sales?period=${period}`, {
-    cache: "no-store"
-  });
-
-  if (!response.ok) {
-    throw await parseError(response);
-  }
-
-  return (await response.json()) as AdminSalesReportResponse;
+  return authGet<AdminSalesReportResponse>(`/api/v1/admin/reports/sales?period=${period}`);
 }

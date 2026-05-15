@@ -55,9 +55,7 @@ export function ProfileForm() {
     setError(null);
     try {
       const response = await updateProfileRequest(userId, {
-        name: form.name,
-        email: form.email,
-        phone: form.phone || undefined
+        name: form.name
       });
 
       updateStoredAuthUser({
@@ -109,7 +107,8 @@ export function ProfileForm() {
           value={form.email}
           onChange={(event) => setForm((prev) => ({ ...prev, email: event.target.value }))}
           className="h-11 w-full rounded-md border border-border bg-white px-3 text-sm"
-          required
+          disabled
+          title="Untuk sementara perubahan email dinonaktifkan"
         />
       </div>
 
@@ -122,8 +121,14 @@ export function ProfileForm() {
           value={form.phone}
           onChange={(event) => setForm((prev) => ({ ...prev, phone: event.target.value }))}
           className="h-11 w-full rounded-md border border-border bg-white px-3 text-sm"
+          disabled
+          title="Untuk sementara perubahan nomor HP dinonaktifkan"
         />
       </div>
+
+      <p className="text-xs text-muted-foreground">
+        Untuk sementara, perubahan email dan nomor HP dinonaktifkan sampai verifikasi OTP/email diaktifkan.
+      </p>
 
       {error ? <p className="text-sm text-red-600">{error}</p> : null}
 

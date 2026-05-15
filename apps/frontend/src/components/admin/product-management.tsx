@@ -3,19 +3,17 @@
 import { FormEvent, useEffect, useState } from "react";
 import { toast } from "sonner";
 
+import { authDelete, authGet, authPost } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 
 interface CategoryItem {
   id: string;
   name: string;
-  slug: string;
-  isActive: boolean;
 }
 
 interface ProductItem {
   id: string;
   name: string;
-  slug: string;
   sku: string;
   price: string;
   stock: number;
@@ -25,7 +23,8 @@ interface ProductItem {
   };
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
+const CLOUDINARY_UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
+const CLOUDINARY_CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
 
 export function ProductManagement() {
   const [categories, setCategories] = useState<CategoryItem[]>([]);
@@ -38,37 +37,22 @@ export function ProductManagement() {
     sku: "",
     price: "",
     stock: "",
-    categoryId: ""
+    categoryId: "",
+    imageUrl: ""
   });
-
-  async function request(path: string, init?: RequestInit) {
-    const response = await fetch(`${API_BASE_URL}${path}`, {
-      ...init,
-      headers: {
-        "Content-Type": "application/json",
-        ...(init?.headers ?? {})
-      },
-      cache: "no-store"
-    });
-
-    if (!response.ok) {
-      const payload = (await response.json().catch(() => null)) as { message?: string } | null;
-      throw new Error(payload?.message ?? "Request failed");
-    }
-
-    return response.json();
-  }
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   async function loadData() {
     setLoading(true);
     try {
       const [categoriesResponse, productsResponse] = await Promise.all([
-        request("/api/v1/catalog/categories"),
-        request("/api/v1/catalog/products?status=ACTIVE&page=1&pageSize=50")
+        authGet<{ items: CategoryItem[] }>("/api/v1/catalog/categories"),
+        authGet<{ items: ProductItem[] }>("/api/v1/catalog/products?status=ACTIVE&page=1&pageSize=50")
       ]);
 
       setCategories(categoriesResponse.items);
       setProducts(productsResponse.items);
+
       if (!productForm.categoryId && categoriesResponse.items[0]) {
         setProductForm((prev) => ({ ...prev, categoryId: categoriesResponse.items[0].id }));
       }
@@ -86,12 +70,9 @@ export function ProductManagement() {
   async function createCategory(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     try {
-      await request("/api/v1/catalog/categories", {
-        method: "POST",
-        body: JSON.stringify({
-          name: categoryForm.name,
-          slug: categoryForm.slug
-        })
+      await authPost<{ item: CategoryItem }>("/api/v1/catalog/categories", {
+        name: categoryForm.name,
+        slug: categoryForm.slug
       });
       setCategoryForm({ name: "", slug: "" });
       toast.success("Kategori berhasil dibuat");
@@ -104,18 +85,24 @@ export function ProductManagement() {
   async function createProduct(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     try {
-      await request("/api/v1/catalog/products", {
-        method: "POST",
-        body: JSON.stringify({
-          name: productForm.name,
-          slug: productForm.slug,
-          sku: productForm.sku,
-          price: Number(productForm.price),
-          stock: Number(productForm.stock),
-          categoryId: productForm.categoryId
-        })
+      await authPost<{ item: ProductItem }>("/api/v1/catalog/products", {
+        name: productForm.name,
+        slug: productForm.slug,
+        sku: productForm.sku,
+        price: Number(productForm.price),
+        stock: Number(productForm.stock),
+        categoryId: productForm.categoryId,
+        imageUrl: productForm.imageUrl || undefined
       });
-      setProductForm((prev) => ({ ...prev, name: "", slug: "", sku: "", price: "", stock: "" }));
+      setProductForm((prev) => ({
+        ...prev,
+        name: "",
+        slug: "",
+        sku: "",
+        price: "",
+        stock: "",
+        imageUrl: ""
+      }));
       toast.success("Produk berhasil dibuat");
       await loadData();
     } catch (error) {
@@ -123,11 +110,31 @@ export function ProductManagement() {
     }
   }
 
+  async function uploadImage(file: File) {
+    if (!CLOUDINARY_UPLOAD_PRESET || !CLOUDINARY_CLOUD_NAME) {
+      throw new Error("Cloudinary belum dikonfigurasi di frontend env");
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+
+    const response = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`, {
+      method: "POST",
+      body: formData
+    });
+
+    if (!response.ok) {
+      throw new Error("Upload gambar gagal");
+    }
+
+    const payload = (await response.json()) as { secure_url: string };
+    return payload.secure_url;
+  }
+
   async function deleteProduct(productId: string) {
     try {
-      await request(`/api/v1/catalog/products/${productId}`, {
-        method: "DELETE"
-      });
+      await authDelete<{ message: string }>(`/api/v1/catalog/products/${productId}`);
       toast.success("Produk berhasil dihapus");
       await loadData();
     } catch (error) {
@@ -165,57 +172,40 @@ export function ProductManagement() {
       <section className="rounded-lg border border-border/70 bg-white/80 p-5">
         <h3 className="text-sm font-semibold uppercase tracking-[0.16em] text-primary">Tambah produk</h3>
         <form className="mt-4 grid gap-3 sm:grid-cols-3" onSubmit={createProduct}>
-          <input
-            className="h-10 rounded-md border border-border bg-white px-3 text-sm"
-            placeholder="Nama produk"
-            value={productForm.name}
-            onChange={(event) => setProductForm((prev) => ({ ...prev, name: event.target.value }))}
-            required
-          />
-          <input
-            className="h-10 rounded-md border border-border bg-white px-3 text-sm"
-            placeholder="Slug"
-            value={productForm.slug}
-            onChange={(event) => setProductForm((prev) => ({ ...prev, slug: event.target.value }))}
-            required
-          />
-          <input
-            className="h-10 rounded-md border border-border bg-white px-3 text-sm"
-            placeholder="SKU"
-            value={productForm.sku}
-            onChange={(event) => setProductForm((prev) => ({ ...prev, sku: event.target.value }))}
-            required
-          />
-          <input
-            className="h-10 rounded-md border border-border bg-white px-3 text-sm"
-            placeholder="Harga"
-            type="number"
-            value={productForm.price}
-            onChange={(event) => setProductForm((prev) => ({ ...prev, price: event.target.value }))}
-            required
-          />
-          <input
-            className="h-10 rounded-md border border-border bg-white px-3 text-sm"
-            placeholder="Stock"
-            type="number"
-            value={productForm.stock}
-            onChange={(event) => setProductForm((prev) => ({ ...prev, stock: event.target.value }))}
-            required
-          />
-          <select
-            className="h-10 rounded-md border border-border bg-white px-3 text-sm"
-            value={productForm.categoryId}
-            onChange={(event) => setProductForm((prev) => ({ ...prev, categoryId: event.target.value }))}
-            required
-          >
+          <input className="h-10 rounded-md border border-border bg-white px-3 text-sm" placeholder="Nama produk" value={productForm.name} onChange={(event) => setProductForm((prev) => ({ ...prev, name: event.target.value }))} required />
+          <input className="h-10 rounded-md border border-border bg-white px-3 text-sm" placeholder="Slug" value={productForm.slug} onChange={(event) => setProductForm((prev) => ({ ...prev, slug: event.target.value }))} required />
+          <input className="h-10 rounded-md border border-border bg-white px-3 text-sm" placeholder="SKU" value={productForm.sku} onChange={(event) => setProductForm((prev) => ({ ...prev, sku: event.target.value }))} required />
+          <input className="h-10 rounded-md border border-border bg-white px-3 text-sm" placeholder="Harga" type="number" value={productForm.price} onChange={(event) => setProductForm((prev) => ({ ...prev, price: event.target.value }))} required />
+          <input className="h-10 rounded-md border border-border bg-white px-3 text-sm" placeholder="Stok" type="number" value={productForm.stock} onChange={(event) => setProductForm((prev) => ({ ...prev, stock: event.target.value }))} required />
+          <select className="h-10 rounded-md border border-border bg-white px-3 text-sm" value={productForm.categoryId} onChange={(event) => setProductForm((prev) => ({ ...prev, categoryId: event.target.value }))} required>
             {categories.map((category) => (
               <option key={category.id} value={category.id}>
                 {category.name}
               </option>
             ))}
           </select>
-          <Button type="submit" className="sm:col-span-3">
-            Tambah produk
+          <input
+            type="file"
+            accept="image/*"
+            className="h-10 rounded-md border border-border bg-white px-3 py-2 text-sm"
+            onChange={async (event) => {
+              const file = event.target.files?.[0];
+              if (!file) return;
+              setUploadingImage(true);
+              try {
+                const imageUrl = await uploadImage(file);
+                setProductForm((prev) => ({ ...prev, imageUrl }));
+                toast.success("Gambar berhasil diupload");
+              } catch (error) {
+                toast.error(error instanceof Error ? error.message : "Upload gambar gagal");
+              } finally {
+                setUploadingImage(false);
+              }
+            }}
+          />
+          <input className="h-10 rounded-md border border-border bg-white px-3 text-sm" placeholder="URL gambar (opsional, auto terisi setelah upload)" value={productForm.imageUrl} onChange={(event) => setProductForm((prev) => ({ ...prev, imageUrl: event.target.value }))} />
+          <Button type="submit" className="sm:col-span-3" disabled={uploadingImage}>
+            {uploadingImage ? "Upload gambar..." : "Tambah produk"}
           </Button>
         </form>
       </section>
@@ -229,7 +219,7 @@ export function ProductManagement() {
                 <div>
                   <p className="text-sm font-semibold text-foreground">{product.name}</p>
                   <p className="text-xs text-muted-foreground">
-                    {product.category.name} - {product.sku} - Stock {product.stock}
+                    {product.category.name} - {product.sku} - Stok {product.stock}
                   </p>
                 </div>
                 <div className="flex items-center gap-3">

@@ -1,13 +1,16 @@
 export interface CreateOrderPayload {
-  recipientName: string;
-  phone: string;
-  province: string;
-  city: string;
-  district: string;
-  postalCode: string;
-  line1: string;
-  line2?: string;
-  notes?: string;
+  addressId?: string;
+  address?: {
+    recipientName: string;
+    phone: string;
+    province: string;
+    city: string;
+    district: string;
+    postalCode: string;
+    line1: string;
+    line2?: string;
+    notes?: string;
+  };
   customerNote?: string;
   paymentProvider: "MIDTRANS" | "XENDIT" | "MANUAL";
 }
