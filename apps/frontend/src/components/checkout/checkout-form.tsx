@@ -178,9 +178,6 @@ export function CheckoutForm({ cart }: CheckoutFormProps) {
           />
         </div>
 
-        <div className="rounded-md border border-border/70 bg-white/70 p-4 text-sm text-muted-foreground">
-          Metode pembayaran: <span className="font-medium text-foreground">Midtrans</span>
-        </div>
       </div>
 
       <aside className="h-fit rounded-lg border border-border/70 bg-white/80 p-5">

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { formatPrice } from "@/data/products";
@@ -8,6 +9,7 @@ import { listOrders, type OrderListItem } from "@/lib/checkout-client";
 import { Button } from "@/components/ui/button";
 
 export function OrdersPageView() {
+  const router = useRouter();
   const [items, setItems] = useState<OrderListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -18,6 +20,11 @@ export function OrdersPageView() {
         const response = await listOrders();
         setItems(response.items);
       } catch (loadError) {
+        if (loadError instanceof Error && loadError.message.toLowerCase().includes("unauthorized")) {
+          setError("Sesi login berakhir. Silakan login ulang.");
+          router.push("/login?next=/orders");
+          return;
+        }
         setError(loadError instanceof Error ? loadError.message : "Gagal memuat pesanan");
       } finally {
         setLoading(false);

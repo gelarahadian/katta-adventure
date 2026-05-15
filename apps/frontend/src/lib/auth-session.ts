@@ -7,15 +7,46 @@ const userKey = "ka_auth_user";
 const sessionCookie = "ka_session";
 const roleCookie = "ka_role";
 
+function parseJwtExpiry(token: string) {
+  try {
+    const payloadRaw = token.split(".")[1];
+    if (!payloadRaw) {
+      return null;
+    }
+
+    const payloadJson = atob(payloadRaw.replace(/-/g, "+").replace(/_/g, "/"));
+    const payload = JSON.parse(payloadJson) as { exp?: number };
+    if (!payload.exp) {
+      return null;
+    }
+
+    return payload.exp;
+  } catch {
+    return null;
+  }
+}
+
 function normalizeRole(role: AuthUser["role"] | string) {
   return role.toString().toLowerCase() === "admin" ? "admin" : "customer";
 }
 
+function normalizeUser(user: AuthUser): AuthUser {
+  return {
+    ...user,
+    role: normalizeRole(user.role)
+  };
+}
+
 export function setAuthSession(user: AuthUser, accessToken: string) {
+  const normalizedUser = normalizeUser(user);
+  const exp = parseJwtExpiry(accessToken);
+  const now = Math.floor(Date.now() / 1000);
+  const maxAgeSeconds = exp ? Math.max(0, exp - now) : 60 * 15;
+
   localStorage.setItem(tokenKey, accessToken);
-  localStorage.setItem(userKey, JSON.stringify(user));
-  document.cookie = `${sessionCookie}=1; Path=/; Max-Age=${60 * 60 * 24 * 7}; SameSite=Lax`;
-  document.cookie = `${roleCookie}=${normalizeRole(user.role)}; Path=/; Max-Age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+  localStorage.setItem(userKey, JSON.stringify(normalizedUser));
+  document.cookie = `${sessionCookie}=1; Path=/; Max-Age=${maxAgeSeconds}; SameSite=Lax`;
+  document.cookie = `${roleCookie}=${normalizedUser.role}; Path=/; Max-Age=${maxAgeSeconds}; SameSite=Lax`;
   window.dispatchEvent(new Event("auth:changed"));
 }
 
@@ -29,7 +60,21 @@ export function clearAuthSession() {
 
 export function hasAuthSession() {
   const token = localStorage.getItem(tokenKey);
-  return Boolean(token);
+  if (!token) {
+    return false;
+  }
+
+  const exp = parseJwtExpiry(token);
+  if (!exp) {
+    return true;
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  const valid = exp > now;
+  if (!valid) {
+    clearAuthSession();
+  }
+  return valid;
 }
 
 export function getAuthUser() {
@@ -39,7 +84,8 @@ export function getAuthUser() {
   }
 
   try {
-    return JSON.parse(raw) as AuthUser;
+    const parsed = JSON.parse(raw) as AuthUser;
+    return normalizeUser(parsed);
   } catch {
     clearAuthSession();
     return null;
@@ -47,7 +93,8 @@ export function getAuthUser() {
 }
 
 export function updateStoredAuthUser(user: AuthUser) {
-  localStorage.setItem(userKey, JSON.stringify(user));
-  document.cookie = `${roleCookie}=${normalizeRole(user.role)}; Path=/; Max-Age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+  const normalizedUser = normalizeUser(user);
+  localStorage.setItem(userKey, JSON.stringify(normalizedUser));
+  document.cookie = `${roleCookie}=${normalizedUser.role}; Path=/; Max-Age=${60 * 60 * 24 * 7}; SameSite=Lax`;
   window.dispatchEvent(new Event("auth:changed"));
 }

@@ -9,11 +9,13 @@ import { formatPrice } from "@/data/products";
 import { getCart, removeCartItem, updateCartItem } from "@/lib/cart-client";
 import type { CartResponse } from "@/types/cart";
 import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
 
 const fallbackImage =
   "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?auto=format&fit=crop&w=900&q=80";
 
 export function CartView() {
+  const router = useRouter();
   const [cart, setCart] = useState<CartResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -25,6 +27,11 @@ export function CartView() {
       const data = await getCart();
       setCart(data);
     } catch (loadError) {
+      if (loadError instanceof Error && loadError.message.toLowerCase().includes("unauthorized")) {
+        setError("Sesi login berakhir. Silakan login ulang.");
+        router.push("/login?next=/cart");
+        return;
+      }
       setError(loadError instanceof Error ? loadError.message : "Gagal memuat keranjang");
     } finally {
       setLoading(false);

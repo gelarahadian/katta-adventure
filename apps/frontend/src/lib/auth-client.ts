@@ -7,6 +7,7 @@ import type {
   RegisterPayload,
   UserProfile
 } from "@/types/auth";
+import { clearAuthSession } from "@/lib/auth-session";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
@@ -76,6 +77,9 @@ export function authGet<TResponse>(path: string) {
     cache: "no-store"
   }).then(async (response) => {
     if (!response.ok) {
+      if (response.status === 401) {
+        clearAuthSession();
+      }
       throw await parseError(response);
     }
     return (await response.json()) as TResponse;
@@ -94,6 +98,9 @@ export function authPost<TResponse>(path: string, payload: unknown) {
     body: JSON.stringify(payload)
   }).then(async (response) => {
     if (!response.ok) {
+      if (response.status === 401) {
+        clearAuthSession();
+      }
       throw await parseError(response);
     }
     return (await response.json()) as TResponse;
@@ -112,6 +119,9 @@ export function authPatch<TResponse>(path: string, payload: unknown) {
     body: JSON.stringify(payload)
   }).then(async (response) => {
     if (!response.ok) {
+      if (response.status === 401) {
+        clearAuthSession();
+      }
       throw await parseError(response);
     }
     return (await response.json()) as TResponse;
@@ -129,6 +139,9 @@ export function authDelete<TResponse>(path: string) {
     credentials: "include"
   }).then(async (response) => {
     if (!response.ok) {
+      if (response.status === 401) {
+        clearAuthSession();
+      }
       throw await parseError(response);
     }
     return (await response.json()) as TResponse;

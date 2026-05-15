@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { formatPrice } from "@/data/products";
@@ -12,6 +13,7 @@ const fallbackImage =
   "https://images.unsplash.com/photo-1504280390367-361c6d9f38f4?auto=format&fit=crop&w=900&q=80";
 
 export function OrderDetailView({ orderNumber }: { orderNumber: string }) {
+  const router = useRouter();
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -22,6 +24,11 @@ export function OrderDetailView({ orderNumber }: { orderNumber: string }) {
         const response = await getOrderDetail(orderNumber);
         setOrder(response);
       } catch (loadError) {
+        if (loadError instanceof Error && loadError.message.toLowerCase().includes("unauthorized")) {
+          setError("Sesi login berakhir. Silakan login ulang.");
+          router.push(`/login?next=/orders/${encodeURIComponent(orderNumber)}`);
+          return;
+        }
         setError(loadError instanceof Error ? loadError.message : "Gagal memuat detail order");
       } finally {
         setLoading(false);

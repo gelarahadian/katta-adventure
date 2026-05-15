@@ -23,7 +23,7 @@ export function AuthActions() {
       setIsAuthenticated(session);
       const user = getAuthUser();
       setDisplayName(user?.name ?? null);
-      setIsAdmin(user?.role === "admin");
+      setIsAdmin(user?.role.toLowerCase() === "admin");
     };
 
     sync();
