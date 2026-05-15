@@ -339,6 +339,20 @@ export class OrderService {
     const nextPaymentStatus = mapMidtransStatusToPaymentStatus(payload);
     const nextOrderStatus = mapPaymentToOrderStatus(nextPaymentStatus);
 
+    if (payment.status === nextPaymentStatus && payment.order.status === nextOrderStatus) {
+      return {
+        message: "Webhook already processed",
+        payment: {
+          id: payment.id,
+          status: payment.status
+        },
+        order: {
+          id: payment.order.id,
+          status: payment.order.status
+        }
+      };
+    }
+
     const updatedPayment = await prisma.payment.update({
       where: {
         id: payment.id
