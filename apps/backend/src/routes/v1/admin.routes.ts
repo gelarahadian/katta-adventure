@@ -3,6 +3,7 @@ import { Router } from "express";
 import { asyncHandler } from "../../lib/async-handler.js";
 import {
   getAdminOverview,
+  getAdminSalesReport,
   listAdminCustomers,
   listAdminOrders,
   updateAdminOrderStatus
@@ -14,3 +15,4 @@ adminRouter.get("/overview", asyncHandler(getAdminOverview));
 adminRouter.get("/orders", asyncHandler(listAdminOrders));
 adminRouter.patch("/orders/:orderId/status", asyncHandler(updateAdminOrderStatus));
 adminRouter.get("/customers", asyncHandler(listAdminCustomers));
+adminRouter.get("/reports/sales", asyncHandler(getAdminSalesReport));

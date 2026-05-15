@@ -1,8 +1,9 @@
-import { OrderStatus, PaymentStatus, ProductStatus, UserRole } from "@prisma/client";
+import { OrderStatus, PaymentStatus, Prisma, ProductStatus, UserRole } from "@prisma/client";
 
 import { AppError } from "../../lib/app-error.js";
 
 import { prisma } from "../../lib/prisma.js";
+import type { SalesReportQueryInput } from "./admin.report.schemas.js";
 
 export class AdminService {
   async getOverview() {
@@ -176,6 +177,52 @@ export class AdminService {
         lastLoginAt: customer.lastLoginAt?.toISOString() ?? null,
         totalOrders: customer._count.orders,
         totalPayments: customer._count.payments
+      }))
+    };
+  }
+
+  async getSalesReport(query: SalesReportQueryInput) {
+    if (query.period === "daily") {
+      const rows = await prisma.$queryRaw<Array<{ date: Date; total_revenue: Prisma.Decimal; total_orders: bigint }>>`
+        SELECT
+          DATE(o."createdAt") AS date,
+          COALESCE(SUM(o."totalAmount"), 0) AS total_revenue,
+          COUNT(o.id) AS total_orders
+        FROM "Order" o
+        WHERE o.status IN ('PAID', 'PROCESSING', 'SHIPPED', 'DELIVERED')
+        GROUP BY DATE(o."createdAt")
+        ORDER BY DATE(o."createdAt") DESC
+        LIMIT 30
+      `;
+
+      return {
+        period: "daily",
+        items: rows.map((row) => ({
+          label: row.date.toISOString().slice(0, 10),
+          totalRevenue: row.total_revenue.toString(),
+          totalOrders: Number(row.total_orders)
+        }))
+      };
+    }
+
+    const monthlyRows = await prisma.$queryRaw<Array<{ month: Date; total_revenue: Prisma.Decimal; total_orders: bigint }>>`
+      SELECT
+        DATE_TRUNC('month', o."createdAt") AS month,
+        COALESCE(SUM(o."totalAmount"), 0) AS total_revenue,
+        COUNT(o.id) AS total_orders
+      FROM "Order" o
+      WHERE o.status IN ('PAID', 'PROCESSING', 'SHIPPED', 'DELIVERED')
+      GROUP BY DATE_TRUNC('month', o."createdAt")
+      ORDER BY DATE_TRUNC('month', o."createdAt") DESC
+      LIMIT 12
+    `;
+
+    return {
+      period: "monthly",
+      items: monthlyRows.map((row) => ({
+        label: `${row.month.getUTCFullYear()}-${String(row.month.getUTCMonth() + 1).padStart(2, "0")}`,
+        totalRevenue: row.total_revenue.toString(),
+        totalOrders: Number(row.total_orders)
       }))
     };
   }

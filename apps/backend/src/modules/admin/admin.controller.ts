@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 
 import { adminService } from "./admin.service.js";
+import { salesReportQuerySchema } from "./admin.report.schemas.js";
 import { orderParamsSchema, updateOrderStatusSchema } from "./admin.schemas.js";
 
 export async function getAdminOverview(_request: Request, response: Response) {
@@ -22,5 +23,11 @@ export async function updateAdminOrderStatus(request: Request, response: Respons
 
 export async function listAdminCustomers(_request: Request, response: Response) {
   const result = await adminService.listCustomers();
+  response.status(200).json(result);
+}
+
+export async function getAdminSalesReport(request: Request, response: Response) {
+  const query = salesReportQuerySchema.parse(request.query);
+  const result = await adminService.getSalesReport(query);
   response.status(200).json(result);
 }

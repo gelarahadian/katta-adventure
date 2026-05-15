@@ -134,3 +134,24 @@ export async function listAdminCustomers() {
 
   return (await response.json()) as AdminCustomerListResponse;
 }
+
+export interface AdminSalesReportResponse {
+  period: "daily" | "monthly";
+  items: Array<{
+    label: string;
+    totalRevenue: string;
+    totalOrders: number;
+  }>;
+}
+
+export async function getAdminSalesReport(period: "daily" | "monthly") {
+  const response = await fetch(`${getApiBaseUrl()}/api/v1/admin/reports/sales?period=${period}`, {
+    cache: "no-store"
+  });
+
+  if (!response.ok) {
+    throw await parseError(response);
+  }
+
+  return (await response.json()) as AdminSalesReportResponse;
+}
