@@ -13,6 +13,12 @@ import { getCatalogProductBySlug, getCatalogProducts } from "@/lib/catalog-clien
 import { mapCatalogProductToCard } from "@/lib/catalog-mappers";
 import { Button } from "@/components/ui/button";
 
+const sellerWhatsapp = process.env.NEXT_PUBLIC_SELLER_WHATSAPP ?? "";
+
+function toWaNumber(value: string) {
+  return value.replace(/[^0-9]/g, "");
+}
+
 interface ProductDetailPageProps {
   params: Promise<{
     productId: string;
@@ -60,6 +66,19 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
     .filter((item) => item.slug !== product.slug)
     .slice(0, 3)
     .map(mapCatalogProductToCard);
+
+  const chatMessage = [
+    "Halo admin Katta Adventure,",
+    `Saya mau tanya tentang produk: ${product.name}`,
+    `SKU: ${product.sku}`,
+    `Link produk: /products/${product.slug}`,
+    "Mohon info stok, variasi, dan detail produk ya. Terima kasih."
+  ].join("\n");
+
+  const normalizedPhone = toWaNumber(sellerWhatsapp);
+  const chatSellerUrl = normalizedPhone
+    ? `https://wa.me/${normalizedPhone}?text=${encodeURIComponent(chatMessage)}`
+    : `https://api.whatsapp.com/send?text=${encodeURIComponent(chatMessage)}`;
 
   return (
     <main className="min-h-screen">
@@ -140,11 +159,13 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
                   </div>
                 ) : (
                   <Button className="sm:flex-1" variant="secondary" disabled>
-                    Notify me
+                    Beri tahu saya
                   </Button>
                 )}
-                <Button variant="outline" className="sm:flex-1">
-                  Save for later
+                <Button variant="outline" className="sm:flex-1" asChild>
+                  <Link href={chatSellerUrl} target="_blank" rel="noopener noreferrer">
+                    Chat penjual
+                  </Link>
                 </Button>
               </div>
             </div>
@@ -177,7 +198,7 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
         <div className="grid gap-8 lg:grid-cols-[0.72fr_1.28fr]">
           <div className="rounded-lg border border-border/70 bg-white/60 p-6 backdrop-blur-sm">
             <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">
-              Why it works
+              Kenapa cocok
             </p>
             <ul className="mt-5 space-y-4 text-sm leading-6 text-muted-foreground">
               <li className="flex gap-3">
@@ -197,8 +218,8 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
 
           <div>
             <SectionHeading
-              eyebrow="Related gear"
-              title="Complete the setup"
+              eyebrow="Perlengkapan terkait"
+              title="Lengkapi perlengkapan"
               description="Beberapa item lain yang masih nyambung dengan kebutuhan produk ini."
             />
             <div className="mt-8 grid gap-6 sm:grid-cols-2 xl:grid-cols-3">

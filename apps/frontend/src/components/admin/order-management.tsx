@@ -68,7 +68,7 @@ export function OrderManagement() {
                 <p className="text-xs text-muted-foreground">
                   {order.customer.name} - {order.customer.email}
                 </p>
-                <p className="mt-1 text-xs text-muted-foreground">Payment: {order.payment?.status ?? "-"}</p>
+                <p className="mt-1 text-xs text-muted-foreground">Pembayaran: {order.payment?.status ?? "-"}</p>
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
@@ -90,7 +90,7 @@ export function OrderManagement() {
                   disabled={busyOrderId === order.id}
                   onClick={() => void onUpdateStatus(order.id, order.status)}
                 >
-                  {busyOrderId === order.id ? "Updating..." : "Refresh"}
+                  {busyOrderId === order.id ? "Memperbarui..." : "Muat ulang"}
                 </Button>
               </div>
             </div>

@@ -14,6 +14,11 @@ interface CheckoutResultViewProps {
 
 const pollIntervalMs = 4000;
 const pollTimeoutMs = 60000;
+const sellerWhatsapp = process.env.NEXT_PUBLIC_SELLER_WHATSAPP ?? "";
+
+function toWaNumber(value: string) {
+  return value.replace(/[^0-9]/g, "");
+}
 
 export function CheckoutResultView({ initialVariant }: CheckoutResultViewProps) {
   const params = useSearchParams();
@@ -66,6 +71,23 @@ export function CheckoutResultView({ initialVariant }: CheckoutResultViewProps) 
   }, [status]);
 
   const visualState = status?.state ?? initialVariant;
+  const canChatSeller = visualState === "success" && Boolean(status?.orderNumber) && Boolean(sellerWhatsapp);
+  const whatsappLink = useMemo(() => {
+    if (!canChatSeller || !status) {
+      return "";
+    }
+
+    const message = [
+      "Halo admin Katta Adventure,",
+      "Saya ingin konfirmasi bahwa pembayaran pesanan saya sudah berhasil.",
+      `No. Order: ${status.orderNumber}`,
+      `Status Order: ${status.orderStatus}`,
+      `Status Pembayaran: ${status.paymentStatus}`,
+      "Terima kasih."
+    ].join("\n");
+
+    return `https://wa.me/${toWaNumber(sellerWhatsapp)}?text=${encodeURIComponent(message)}`;
+  }, [canChatSeller, status]);
 
   const title =
     visualState === "success"
@@ -135,6 +157,13 @@ export function CheckoutResultView({ initialVariant }: CheckoutResultViewProps) 
         <Button variant="outline" onClick={() => (status ? void fetchStatus(status.orderNumber) : undefined)}>
           Cek lagi
         </Button>
+        {canChatSeller ? (
+          <Button asChild variant="outline">
+            <Link href={whatsappLink} target="_blank" rel="noopener noreferrer">
+              Chat penjual
+            </Link>
+          </Button>
+        ) : null}
         <Button asChild variant="outline">
           <Link href="/orders">Lihat riwayat pesanan</Link>
         </Button>

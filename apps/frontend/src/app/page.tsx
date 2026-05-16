@@ -31,12 +31,12 @@ export default function Home() {
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Button asChild>
                 <Link href="/products">
-                  Shop products
+                  Belanja produk
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
               <Button asChild variant="outline">
-                <Link href="#collections">Explore collections</Link>
+                <Link href="#collections">Jelajahi koleksi</Link>
               </Button>
             </div>
             <div className="mt-8 flex flex-wrap gap-2">
@@ -66,12 +66,12 @@ export default function Home() {
       <section id="products" className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
           <SectionHeading
-            eyebrow="Featured gear"
-            title="Ready for the next route"
+            eyebrow="Produk unggulan"
+            title="Siap untuk rute berikutnya"
             description="Pilihan produk unggulan untuk memberi bentuk awal storefront yang lebih realistis dan konsisten."
           />
           <Button variant="secondary" asChild>
-            <Link href="/products">Browse all</Link>
+            <Link href="/products">Lihat semua</Link>
           </Button>
         </div>
 
@@ -96,7 +96,7 @@ export default function Home() {
             className="rounded-lg border border-border/70 bg-white/65 p-6 shadow-[0_12px_40px_-28px_rgba(35,56,42,0.4)] backdrop-blur-sm"
           >
             <p className="text-sm font-semibold uppercase tracking-[0.16em] text-primary">
-              Curated collection
+              Koleksi pilihan
             </p>
             <h3 className="mt-3 font-serif text-2xl tracking-tight">{item}</h3>
             <p className="mt-3 text-sm leading-6 text-muted-foreground">

@@ -116,7 +116,9 @@ export function ProductManagement() {
 
   async function uploadImage(file: File) {
     if (!CLOUDINARY_UPLOAD_PRESET || !CLOUDINARY_CLOUD_NAME) {
-      throw new Error("Cloudinary belum dikonfigurasi di frontend env");
+      throw new Error(
+        "Cloudinary belum dikonfigurasi. Isi NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME dan NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET di apps/frontend/.env"
+      );
     }
 
     const formData = new FormData();
@@ -276,6 +278,11 @@ export function ProductManagement() {
             type="file"
             accept="image/*"
             className="h-10 rounded-md border border-border bg-white px-3 py-2 text-sm"
+            title={
+              CLOUDINARY_UPLOAD_PRESET && CLOUDINARY_CLOUD_NAME
+                ? "Upload gambar produk"
+                : "Cloudinary belum dikonfigurasi di .env frontend"
+            }
             onChange={async (event) => {
               const file = event.target.files?.[0];
               if (!file) return;

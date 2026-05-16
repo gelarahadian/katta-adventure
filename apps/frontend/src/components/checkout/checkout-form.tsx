@@ -35,6 +35,7 @@ export function CheckoutForm({ cart }: CheckoutFormProps) {
 
   const subtotal = Number(cart.summary.subtotal);
   const grandTotal = useMemo(() => subtotal + flatShipping, [subtotal]);
+  const isUsingSavedAddress = Boolean(selectedAddressId);
 
   useEffect(() => {
     void (async () => {
@@ -119,20 +120,21 @@ export function CheckoutForm({ cart }: CheckoutFormProps) {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <Input label="Nama penerima" value={form.recipientName} onChange={(v) => updateField("recipientName", v)} />
-          <Input label="Nomor HP" value={form.phone} onChange={(v) => updateField("phone", v)} />
-          <Input label="Provinsi" value={form.province} onChange={(v) => updateField("province", v)} />
-          <Input label="Kota" value={form.city} onChange={(v) => updateField("city", v)} />
-          <Input label="Kecamatan" value={form.district} onChange={(v) => updateField("district", v)} />
-          <Input label="Kode pos" value={form.postalCode} onChange={(v) => updateField("postalCode", v)} />
+          <Input label="Nama penerima" value={form.recipientName} onChange={(v) => updateField("recipientName", v)} required={!isUsingSavedAddress} disabled={isUsingSavedAddress} />
+          <Input label="Nomor HP" value={form.phone} onChange={(v) => updateField("phone", v)} required={!isUsingSavedAddress} disabled={isUsingSavedAddress} />
+          <Input label="Provinsi" value={form.province} onChange={(v) => updateField("province", v)} required={!isUsingSavedAddress} disabled={isUsingSavedAddress} />
+          <Input label="Kota" value={form.city} onChange={(v) => updateField("city", v)} required={!isUsingSavedAddress} disabled={isUsingSavedAddress} />
+          <Input label="Kecamatan" value={form.district} onChange={(v) => updateField("district", v)} required={!isUsingSavedAddress} disabled={isUsingSavedAddress} />
+          <Input label="Kode pos" value={form.postalCode} onChange={(v) => updateField("postalCode", v)} required={!isUsingSavedAddress} disabled={isUsingSavedAddress} />
         </div>
 
-        <Input label="Alamat utama" value={form.line1} onChange={(v) => updateField("line1", v)} />
-        <Input label="Alamat tambahan (opsional)" value={form.line2} onChange={(v) => updateField("line2", v)} />
+        <Input label="Alamat utama" value={form.line1} onChange={(v) => updateField("line1", v)} required={!isUsingSavedAddress} disabled={isUsingSavedAddress} />
+        <Input label="Alamat tambahan (opsional)" value={form.line2} onChange={(v) => updateField("line2", v)} required={false} disabled={isUsingSavedAddress} />
 
         <Button
           type="button"
           variant="outline"
+          disabled={isUsingSavedAddress}
           onClick={async () => {
             try {
               const result = await authPost<{ message: string; item: { id: string; recipientName: string; line1: string; city: string; isDefault: boolean } }>(
@@ -207,15 +209,28 @@ export function CheckoutForm({ cart }: CheckoutFormProps) {
   );
 }
 
-function Input({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
+function Input({
+  label,
+  value,
+  onChange,
+  required = true,
+  disabled = false
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  required?: boolean;
+  disabled?: boolean;
+}) {
   return (
     <div className="space-y-2">
       <label className="text-sm font-medium">{label}</label>
       <input
         value={value}
         onChange={(event) => onChange(event.target.value)}
-        className="h-11 w-full rounded-md border border-border bg-white px-3 text-sm"
-        required
+        className="h-11 w-full rounded-md border border-border bg-white px-3 text-sm disabled:bg-muted disabled:text-muted-foreground"
+        required={required}
+        disabled={disabled}
       />
     </div>
   );

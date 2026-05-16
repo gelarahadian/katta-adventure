@@ -8,7 +8,7 @@ import { SiteHeader } from "@/components/storefront/site-header";
 import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
-  title: "Admin Dashboard | Katta Adventure",
+  title: "Dashboard Admin | Katta Adventure",
   description: "Dashboard statistik dan overview performa toko."
 };
 
@@ -19,8 +19,8 @@ export default function AdminPage() {
 
       <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
         <SectionHeading
-          eyebrow="Admin Dashboard"
-          title="Store performance"
+          eyebrow="Dashboard Admin"
+          title="Performa toko"
           description="Ringkasan statistik pelanggan, pesanan, produk, dan revenue."
         />
 
@@ -28,13 +28,13 @@ export default function AdminPage() {
 
         <div className="mt-6 flex flex-wrap gap-3">
           <Button asChild variant="outline">
-            <Link href="/admin/orders">Order management</Link>
+            <Link href="/admin/orders">Manajemen pesanan</Link>
           </Button>
           <Button asChild variant="outline">
-            <Link href="/admin/customers">Customer management</Link>
+            <Link href="/admin/customers">Manajemen pelanggan</Link>
           </Button>
           <Button asChild variant="outline">
-            <Link href="/admin/reports">Sales reports</Link>
+            <Link href="/admin/reports">Laporan penjualan</Link>
           </Button>
         </div>
 

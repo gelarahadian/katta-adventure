@@ -84,7 +84,7 @@ export function ProductCard({ product, compact = false }: ProductCardProps) {
                 className={cn("w-full text-muted-foreground")}
                 disabled
               >
-                Notify me
+                Beri tahu saya
               </Button>
             )}
           </div>

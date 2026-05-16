@@ -36,17 +36,17 @@ export function AdminOverviewView() {
   return (
     <>
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Customers" value={overview.stats.totalCustomers.toString()} />
-        <StatCard label="Active Products" value={overview.stats.totalProducts.toString()} />
-        <StatCard label="Total Orders" value={overview.stats.totalOrders.toString()} />
-        <StatCard label="Pending Orders" value={overview.stats.pendingOrders.toString()} />
-        <StatCard label="Paid Payments" value={overview.stats.successfulPayments.toString()} />
-        <StatCard label="Monthly Revenue" value={formatPrice(Number(overview.stats.monthlyRevenue))} />
-        <StatCard label="Total Revenue" value={formatPrice(Number(overview.stats.totalRevenue))} />
+        <StatCard label="Pelanggan" value={overview.stats.totalCustomers.toString()} />
+        <StatCard label="Produk Aktif" value={overview.stats.totalProducts.toString()} />
+        <StatCard label="Total Pesanan" value={overview.stats.totalOrders.toString()} />
+        <StatCard label="Pesanan Pending" value={overview.stats.pendingOrders.toString()} />
+        <StatCard label="Pembayaran Berhasil" value={overview.stats.successfulPayments.toString()} />
+        <StatCard label="Pendapatan Bulanan" value={formatPrice(Number(overview.stats.monthlyRevenue))} />
+        <StatCard label="Total Pendapatan" value={formatPrice(Number(overview.stats.totalRevenue))} />
       </div>
 
       <div className="mt-8 rounded-lg border border-border/70 bg-white/80 p-5">
-        <p className="text-sm font-semibold uppercase tracking-[0.16em] text-primary">Recent orders</p>
+        <p className="text-sm font-semibold uppercase tracking-[0.16em] text-primary">Pesanan terbaru</p>
         <div className="mt-4 space-y-3">
           {overview.recentOrders.length === 0 ? (
             <p className="text-sm text-muted-foreground">Belum ada pesanan terbaru.</p>
